@@ -36,49 +36,113 @@ RD.Textures = (() => {
   }
   const hex = c => parseInt(c.slice(1), 16);
 
-  // ── 맵 배경 (바닐라 버전 buildBackground 와 동일) ──
+  // ── 맵 배경: 타이틀 화면과 같은 사이버 네온 그리드 스타일 (에셋 미사용, 캔버스로 직접 그림) ──
+  //  경로 = 네온 테두리의 데이터 도로(타일 구분선 + 마젠타 중앙 점선 + 진행 방향 화살표)
+  //  배치 칸 = 시안 테두리 + 모서리 브래킷 홀로 타일 / 하단 패널 = 시안·마젠타 네온 라인
   function makeBackground(scene) {
     const W = RD.W, H = RD.H, P = RD.PATH, PW = RD.PW, PH = RD.PH, UI = RD.UI, GRID = RD.GRID;
+    const CY = '0,229,255', MG = '255,43,214', VI = '124,77,255';
     canvasTex(scene, 'bg_map', W, H, c => {
       let g = c.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, '#1a1124'); g.addColorStop(0.6, '#110c19'); g.addColorStop(1, '#08060d');
+      g.addColorStop(0, '#0a0618'); g.addColorStop(0.65, '#070513'); g.addColorStop(1, '#050409');
       c.fillStyle = g; c.fillRect(0, 0, W, H);
+      // 바탕 그리드 (타이틀 상단 그리드와 같은 90px 간격)
+      c.lineWidth = 1; c.strokeStyle = 'rgba(58,42,122,0.35)';
+      c.beginPath();
+      for (let x = 0; x <= W; x += 90) { c.moveTo(x + 0.5, 0); c.lineTo(x + 0.5, UI.panelY); }
+      for (let y = 0; y <= UI.panelY; y += 90) { c.moveTo(0, y + 0.5); c.lineTo(W, y + 0.5); }
+      c.stroke();
       let seed = 1337;
       const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-      for (let i = 0; i < 70; i++) { c.fillStyle = 'rgba(200,180,255,' + (0.03 + rnd() * 0.06) + ')'; c.fillRect(rnd() * W, rnd() * H, 4, 4); }
-      const hw = P.w / 2;
-      c.fillStyle = '#2d2336'; c.fillRect(P.l - hw, P.t - hw, PW + P.w, PH + P.w);
+      for (let i = 0; i < 90; i++) {      // 흩날리는 데이터 조각
+        c.fillStyle = `rgba(${[CY, MG, VI][i % 3]},${0.08 + rnd() * 0.18})`;
+        c.fillRect(rnd() * W, UI.hudH + rnd() * (UI.panelY - UI.hudH), 3, 6 + rnd() * 16);
+      }
+
+      // 경로 (바깥 사각형 - 안쪽 사각형)
+      const hw = P.w / 2, ox = P.l - hw, oy = P.t - hw, ow = PW + P.w, oh = PH + P.w;
+      const ix = P.l + hw, iy = P.t + hw, iw = PW - P.w, ih = PH - P.w;
+      c.save();
+      c.beginPath(); c.rect(ox, oy, ow, oh); c.rect(ix, iy, iw, ih);
+      g = c.createLinearGradient(0, oy, 0, oy + oh);
+      g.addColorStop(0, '#120b2c'); g.addColorStop(1, '#0d0820');
+      c.fillStyle = g; c.fill('evenodd');
+      c.clip('evenodd');
+      // 경로 타일 구분선 (경로 폭 간격)
+      c.strokeStyle = `rgba(${CY},0.13)`; c.lineWidth = 2; c.beginPath();
+      for (let x = ox; x <= ox + ow; x += P.w) { c.moveTo(x, oy); c.lineTo(x, oy + oh); }
+      for (let y = oy; y <= oy + oh; y += P.w) { c.moveTo(ox, y); c.lineTo(ox + ow, y); }
+      c.stroke();
+      // 회로 무늬
+      c.strokeStyle = `rgba(${VI},0.22)`; c.lineWidth = 2;
       const tmp = { x: 0, y: 0 };
-      for (let i = 0; i < 260; i++) {
-        pathPos(rnd() * RD.PERIM, (rnd() - 0.5) * (P.w - 20), tmp);
-        c.fillStyle = 'rgba(255,240,220,' + (0.025 + rnd() * 0.04) + ')';
-        rrect(c, tmp.x - 8, tmp.y - 6, 12 + rnd() * 12, 8 + rnd() * 8, 4); c.fill();
+      for (let i = 0; i < 70; i++) {
+        pathPos(rnd() * RD.PERIM, (rnd() - 0.5) * (P.w - 24), tmp);
+        const L = 10 + rnd() * 22;
+        c.beginPath(); c.moveTo(tmp.x, tmp.y); c.lineTo(tmp.x + L, tmp.y); c.lineTo(tmp.x + L + 6, tmp.y + 6); c.stroke();
+        c.fillStyle = `rgba(${VI},0.4)`; c.fillRect(tmp.x - 2, tmp.y - 2, 4, 4);
       }
-      g = c.createRadialGradient(W / 2, (P.t + P.b) / 2, 80, W / 2, (P.t + P.b) / 2, 640);
-      g.addColorStop(0, '#1f1a2b'); g.addColorStop(1, '#130f1b');
-      c.fillStyle = g; c.fillRect(P.l + hw, P.t + hw, PW - P.w, PH - P.w);
-      c.lineWidth = 4; c.strokeStyle = '#4c3b5c'; c.strokeRect(P.l - hw, P.t - hw, PW + P.w, PH + P.w);
-      c.strokeStyle = '#3b2e48'; c.strokeRect(P.l + hw, P.t + hw, PW - P.w, PH - P.w);
-      c.setLineDash([20, 24]); c.strokeStyle = 'rgba(255,210,150,0.10)'; c.strokeRect(P.l, P.t, PW, PH); c.setLineDash([]);
-      c.fillStyle = 'rgba(255,210,150,0.18)';
+      c.restore();
+      // 경로 테두리 네온 (글로우)
+      const neon = (x, y, w, h, rgb, lw, blur) => {
+        c.save(); c.shadowColor = `rgb(${rgb})`; c.shadowBlur = blur;
+        c.strokeStyle = `rgba(${rgb},0.95)`; c.lineWidth = lw; c.strokeRect(x, y, w, h); c.restore();
+      };
+      neon(ox, oy, ow, oh, CY, 4, 18);
+      neon(ix, iy, iw, ih, CY, 3, 14);
+      c.strokeStyle = `rgba(${CY},0.25)`; c.lineWidth = 10; c.strokeRect(ox - 7, oy - 7, ow + 14, oh + 14);
+      // 중앙 점선 (마젠타) + 진행 방향 화살표
+      c.save(); c.setLineDash([22, 26]); c.shadowColor = `rgb(${MG})`; c.shadowBlur = 8;
+      c.strokeStyle = `rgba(${MG},0.45)`; c.lineWidth = 3; c.strokeRect(P.l, P.t, PW, PH); c.restore();
+      c.fillStyle = `rgba(${MG},0.6)`;
       for (const [x, y, a] of [[W / 2, P.t, 0], [P.r, (P.t + P.b) / 2, Math.PI / 2], [W / 2, P.b, Math.PI], [P.l, (P.t + P.b) / 2, -Math.PI / 2]]) {
-        c.save(); c.translate(x, y); c.rotate(a);
-        c.beginPath(); c.moveTo(18, 0); c.lineTo(-12, -16); c.lineTo(-12, 16); c.closePath(); c.fill(); c.restore();
+        for (const d of [-26, 0, 26]) {
+          c.save(); c.translate(x, y); c.rotate(a); c.translate(d, 0);
+          c.beginPath(); c.moveTo(10, 0); c.lineTo(-8, -14); c.lineTo(-2, 0); c.lineTo(-8, 14); c.closePath(); c.fill(); c.restore();
+        }
       }
+      // 경로 모서리 노드
+      for (const [x, y] of [[P.l, P.t], [P.r, P.t], [P.r, P.b], [P.l, P.b]]) {
+        c.save(); c.shadowColor = `rgb(${CY})`; c.shadowBlur = 16;
+        c.strokeStyle = `rgba(${CY},0.9)`; c.lineWidth = 3;
+        c.beginPath(); c.moveTo(x, y - 22); c.lineTo(x + 22, y); c.lineTo(x, y + 22); c.lineTo(x - 22, y); c.closePath(); c.stroke();
+        c.restore();
+      }
+
+      // 안쪽 결계 (유닛 배치 영역)
+      g = c.createRadialGradient(W / 2, (P.t + P.b) / 2, 60, W / 2, (P.t + P.b) / 2, 620);
+      g.addColorStop(0, 'rgba(60,30,120,0.35)'); g.addColorStop(1, 'rgba(10,6,24,0)');
+      c.fillStyle = g; c.fillRect(ix, iy, iw, ih);
+      // 배치 칸: 홀로 타일
+      const k = 14;
       for (let r = 0; r < GRID.rows; r++) for (let col = 0; col < GRID.cols; col++) {
-        const x = GRID.x + col * GRID.cell, y = GRID.y + r * GRID.cell;
-        rrect(c, x + 6, y + 6, GRID.cell - 12, GRID.cell - 12, 16);
-        c.fillStyle = 'rgba(255,255,255,0.025)'; c.fill();
-        c.strokeStyle = 'rgba(255,255,255,0.045)'; c.lineWidth = 2; c.stroke();
+        const x = GRID.x + col * GRID.cell + 6, y = GRID.y + r * GRID.cell + 6, w = GRID.cell - 12;
+        g = c.createLinearGradient(x, y, x, y + w);
+        g.addColorStop(0, `rgba(${CY},0.07)`); g.addColorStop(1, `rgba(${VI},0.05)`);
+        c.fillStyle = g; c.fillRect(x, y, w, w);
+        c.strokeStyle = `rgba(${CY},0.22)`; c.lineWidth = 2; c.strokeRect(x + 1, y + 1, w - 2, w - 2);
+        c.strokeStyle = `rgba(${CY},0.75)`; c.lineWidth = 3; c.beginPath();
+        for (const [bx, by, dx, dy] of [[x, y, 1, 1], [x + w, y, -1, 1], [x, y + w, 1, -1], [x + w, y + w, -1, -1]]) {
+          c.moveTo(bx + k * dx, by); c.lineTo(bx, by); c.lineTo(bx, by + k * dy);
+        }
+        c.stroke();
+        c.fillStyle = `rgba(${CY},0.18)`; c.fillRect(x + w / 2 - 2, y + w / 2 - 2, 4, 4);
       }
+
+      // HUD 상단 어둡게 + 네온 라인
       g = c.createLinearGradient(0, 0, 0, UI.hudH);
-      g.addColorStop(0, 'rgba(0,0,0,0.55)'); g.addColorStop(1, 'rgba(0,0,0,0.15)');
+      g.addColorStop(0, 'rgba(0,0,0,0.6)'); g.addColorStop(1, 'rgba(0,0,0,0.1)');
       c.fillStyle = g; c.fillRect(0, 0, W, UI.hudH);
+      // 하단 패널
       g = c.createLinearGradient(0, UI.panelY, 0, H);
-      g.addColorStop(0, '#1b1426'); g.addColorStop(1, '#0c0912');
+      g.addColorStop(0, '#0b0f24'); g.addColorStop(1, '#050409');
       c.fillStyle = g; c.fillRect(0, UI.panelY, W, H - UI.panelY);
-      c.fillStyle = '#6b4f2a'; c.fillRect(0, UI.panelY, W, 4);
-      c.fillStyle = 'rgba(255,200,120,0.12)'; c.fillRect(0, UI.panelY + 4, W, 2);
+      c.strokeStyle = 'rgba(58,42,122,0.25)'; c.lineWidth = 1; c.beginPath();
+      for (let x = 0; x <= W; x += 90) { c.moveTo(x + 0.5, UI.panelY); c.lineTo(x + 0.5, H); }
+      c.stroke();
+      c.save(); c.shadowColor = `rgb(${CY})`; c.shadowBlur = 16;
+      c.fillStyle = `rgba(${CY},0.95)`; c.fillRect(0, UI.panelY, W, 4); c.restore();
+      c.fillStyle = `rgba(${MG},0.55)`; c.fillRect(0, UI.panelY + 8, W, 2);
     });
   }
 
@@ -105,6 +169,60 @@ RD.Textures = (() => {
       for (let i = 0; i < grade; i++) {
         c.beginPath(); c.arc(x + (i - (grade - 1) / 2) * 10 * k, y + R + 6 * k, 3.6 * k, 0, TAU); c.fill();
       }
+    });
+  }
+
+  // ── 등급 점만 (캐릭터 스프라이트 유닛 발밑) ──
+  function makePips(scene, key, grade) {
+    canvasTex(scene, key, 64, 16, c => {
+      c.fillStyle = '#ffffff';
+      for (let i = 0; i < grade; i++) { c.beginPath(); c.arc(32 + (i - (grade - 1) / 2) * 13, 8, 4.4, 0, TAU); c.fill(); }
+    });
+  }
+
+  // ── 레벨 이펙트용 흰색 텍스처 (게임에서 tint + ADD 블렌드) ──
+  function makeAuraFx(scene) {
+    canvasTex(scene, 'fx_soft', 128, 128, c => {     // 부드러운 원형 빛
+      const g = c.createRadialGradient(64, 64, 0, 64, 64, 64);
+      g.addColorStop(0, 'rgba(255,255,255,0.9)'); g.addColorStop(0.35, 'rgba(255,255,255,0.35)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+      c.fillStyle = g; c.fillRect(0, 0, 128, 128);
+    });
+    canvasTex(scene, 'fx_spark', 24, 24, c => {
+      const g = c.createRadialGradient(12, 12, 0, 12, 12, 12);
+      g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.3, 'rgba(255,255,255,0.8)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+      c.fillStyle = g; c.fillRect(0, 0, 24, 24);
+    });
+    canvasTex(scene, 'fx_pillar', 64, 160, c => {    // 위로 솟는 빛기둥 (Lv.3)
+      const g = c.createLinearGradient(0, 0, 0, 160);
+      g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(255,255,255,0.55)');
+      const h = c.createLinearGradient(0, 0, 64, 0);
+      c.fillStyle = g; c.fillRect(0, 0, 64, 160);
+      c.globalCompositeOperation = 'destination-in';
+      h.addColorStop(0, 'rgba(0,0,0,0)'); h.addColorStop(0.5, 'rgba(0,0,0,1)'); h.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = h; c.fillRect(0, 0, 64, 160);
+    });
+    // 바닥 마법진: 레벨별 (1 단일 링, 2 육각 룬, 3 이중 링 + 별)  — 위에서 본 원, 게임에서 scaleY 로 눕힘
+    const S = 200, C = S / 2;
+    const ring = (c, r, w) => { c.beginPath(); c.arc(C, C, r, 0, TAU); c.lineWidth = w; c.stroke(); };
+    const poly = (c, n, r, rot) => { c.beginPath(); for (let i = 0; i <= n; i++) { const a = rot + i * TAU / n; i ? c.lineTo(C + Math.cos(a) * r, C + Math.sin(a) * r) : c.moveTo(C + Math.cos(a) * r, C + Math.sin(a) * r); } c.stroke(); };
+    canvasTex(scene, 'fx_rune1', S, S, c => {
+      c.strokeStyle = '#fff'; c.shadowColor = '#fff'; c.shadowBlur = 8;
+      ring(c, 84, 4);
+      for (let i = 0; i < 24; i++) { const a = i * TAU / 24; c.beginPath(); c.moveTo(C + Math.cos(a) * 72, C + Math.sin(a) * 72); c.lineTo(C + Math.cos(a) * (i % 2 ? 78 : 66), C + Math.sin(a) * (i % 2 ? 78 : 66)); c.lineWidth = 3; c.stroke(); }
+    });
+    canvasTex(scene, 'fx_rune2', S, S, c => {
+      c.strokeStyle = '#fff'; c.fillStyle = '#fff'; c.shadowColor = '#fff'; c.shadowBlur = 10;
+      ring(c, 90, 4); ring(c, 74, 2);
+      poly(c, 6, 74, 0); poly(c, 6, 74, Math.PI / 6);
+      for (let i = 0; i < 6; i++) { const a = i * TAU / 6; c.beginPath(); c.arc(C + Math.cos(a) * 82, C + Math.sin(a) * 82, 5, 0, TAU); c.fill(); }
+    });
+    canvasTex(scene, 'fx_rune3', S, S, c => {
+      c.strokeStyle = '#fff'; c.fillStyle = '#fff'; c.shadowColor = '#fff'; c.shadowBlur = 12;
+      ring(c, 94, 5); ring(c, 82, 2); ring(c, 46, 3);
+      c.beginPath();
+      for (let i = 0; i <= 5; i++) { const a = -Math.PI / 2 + i * 2 * TAU / 5; i ? c.lineTo(C + Math.cos(a) * 82, C + Math.sin(a) * 82) : c.moveTo(C + Math.cos(a) * 82, C + Math.sin(a) * 82); }
+      c.lineWidth = 3; c.stroke();
+      for (let i = 0; i < 12; i++) { const a = i * TAU / 12; c.save(); c.translate(C + Math.cos(a) * 88, C + Math.sin(a) * 88); c.rotate(a); c.fillRect(-3, -6, 6, 12); c.restore(); }
     });
   }
 
@@ -204,7 +322,8 @@ RD.Textures = (() => {
   function generateAll(scene) {
     makeBackground(scene);
     for (const t of RD.UNITS) { makeUnit(scene, t, 'unit_' + t.id, UNIT_R); makeUnit(scene, t, 'unitL_' + t.id, UNIT_RL); }
-    for (let g = 0; g < RD.GRADES.length; g++) { makeFrame(scene, 'frame_' + g, UNIT_R, g); makeFrame(scene, 'frameL_' + g, UNIT_RL, g); }
+    for (let g = 0; g < RD.GRADES.length; g++) { makeFrame(scene, 'frame_' + g, UNIT_R, g); makeFrame(scene, 'frameL_' + g, UNIT_RL, g); makePips(scene, 'pips_' + g, g); }
+    makeAuraFx(scene);
     for (const e of RD.ENEMIES) makeEnemy(scene, e, false);
     for (const b of RD.BOSSES) makeEnemy(scene, b, true);
     makeProjectiles(scene);
@@ -214,12 +333,17 @@ RD.Textures = (() => {
   // ── 스프라이트 오버라이드 헬퍼 ──
   // 유닛 몸통 GameObject 생성: 매니페스트 스프라이트가 있으면 Sprite(+idle 애니), 없으면 플레이스홀더 Image
   function unitBody(scene, t, large) {
-    const key = 'spr_unit_' + t.id, a = RD.ASSETS.units[t.id];
+    const a = RD.ASSETS.units[t.id], key = RD.assetKey('spr_unit_', t.id, a);
     if (a && scene.textures.exists(key)) {
       const spr = scene.add.sprite(0, 0, key);
       const fh = spr.frame.realHeight || spr.height;
-      spr.setScale((a.scale || (UNIT_R * 2.3) / fh) * (large ? UNIT_RL / UNIT_R : 1));
-      if (scene.anims.exists(key + '_idle')) spr.play(key + '_idle');
+      const base = a.bodyH ? (RD.UNIT_SPRITE_H[t.grade] || 84) / a.bodyH : (a.scale || (UNIT_R * 2.3) / fh);
+      spr.setScale(base * (large ? UNIT_RL / UNIT_R * 0.8 : 1));
+      if (a.originY !== undefined) spr.setOrigin(0.5, a.originY);
+      if (a.tint !== undefined) spr.setTint(a.tint);
+      // 레벨 2 이상: 외곽 발광 (WebGL 전용 preFX)
+      if (t.grade >= 2 && spr.preFX) spr.preFX.addGlow(RD.util.gradeColorInt(t.grade), t.grade >= 3 ? 3 : 2, 0, false, 0.1, 8);
+      if (scene.anims.exists(key + '_idle')) spr.play({ key: key + '_idle', startFrame: Math.floor(Math.random() * 4) });
       spr.rdSprite = { key, attack: scene.anims.exists(key + '_attack') ? key + '_attack' : null, idle: scene.anims.exists(key + '_idle') ? key + '_idle' : null };
       return spr;
     }

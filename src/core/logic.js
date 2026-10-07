@@ -275,6 +275,10 @@ RD.GameLogic = (() => {
       const t = u.type, dmg = this.unitDmg(t);
       u.anim = 1;
       u.atk++;
+      u.face = e.x < u.x - 4 ? -1 : e.x > u.x + 4 ? 1 : u.face || 1;
+      // 레벨이 높을수록 공격 순간 섬광이 크고, Lv.3 은 적 위치에 충격파 추가
+      if (t.grade >= 1) this.addFx({ k: 'flash', x: u.x, y: u.y - 8, r: 12 + t.grade * 10, color: gradeColorStr(t.grade), life: 0.14 + t.grade * 0.04 });
+      if (t.grade >= 3) this.addFx({ k: 'ring', x: e.x, y: e.y, r: 34, color: gradeColorStr(t.grade), life: 0.3 });
       if (RD.INSTANT_FX[t.fx]) {
         if (t.fx === 'slash') this.addFx({ k: 'slash', x: e.x, y: e.y, a: rand(0, TAU), r: 28 + t.grade * 6, color: t.grade >= 3 ? RD.GRADES[t.grade].color : '#ffffff', life: 0.18 });
         else if (t.fx === 'beam') this.addFx({ k: 'beam', x: u.x, y: u.y, x2: e.x, y2: e.y, w: 4 + t.grade * 2, color: t.pcolor || '#ffffff', life: 0.14 });

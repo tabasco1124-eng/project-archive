@@ -36,13 +36,54 @@ RD.ASSETS = {
   },
 };
 
-// 데모 스프라이트: 주소 끝에 ?demo=1 을 붙이면 궁수/슬라임에 예제 픽셀아트가 적용됩니다.
+/* ── 소환 유닛 캐릭터 (gameasset 팩에서 추출: tools/extract_sprites.py → assets/units/, src/data/sprites_gen.js) ──
+ *  유닛 id: [캐릭터 시트, 색조(tint, 생략 가능)]
+ *  같은 캐릭터를 여러 유닛이 쓰면 색조로 구분. 레벨이 높을수록 크기·오라·발광 이펙트가 커진다 (GameScene).
+ *  시트는 SE(오른쪽 아래) 방향이고, 왼쪽 적을 공격할 때 좌우 반전한다. */
+RD.UNIT_CHARS = {
+  // Lv.0
+  recruit: ['l0_knight'], militia: ['l0_archer'], wisp: ['l0_firemage'],
+  // Lv.1 워리어 / 아처 / 위저드
+  knight: ['knight'], mercenary: ['footsoldier'], berserker: ['hammer'],
+  archer: ['archer'], gunner: ['shooter'], hunter: ['camoarcher'],
+  mage: ['wizard'], hacker: ['caster', 0xa0ffb8], shaman: ['u_wizard', 0xa8ffd8],
+  // Lv.2 워리어
+  assassin: ['assassin'], templar: ['paladin'], gladiator: ['bruiser'],
+  flamer: ['crusader', 0xffa080], juggernaut: ['brawler'], duelist: ['u_berserker'],
+  // Lv.2 아처
+  sniper: ['sniper'], ranger: ['longbow'], cannoneer: ['shooter', 0xffc890],
+  scout: ['archer', 0xd8e890], crossbow: ['u_archer'], stalker: ['u_darkarcher'],
+  // Lv.2 위저드
+  frostmage: ['wizard', 0xb0e4ff], technomancer: ['caster', 0x80ffff], summoner: ['commander'],
+  warlock: ['u_necromancer'], pyromancer: ['darklord', 0xffa070], stormcaller: ['mage', 0xa8b8ff],
+  // Lv.3 워리어
+  shadowlord: ['deathlord'], archon: ['paladin', 0xfff0a0], infernal: ['deathknight', 0xff9080],
+  champion: ['darkknight', 0xffd8a8], titan: ['brute'], swordsaint: ['guard', 0xe8f4ff],
+  // Lv.3 아처
+  deadeye: ['sniper', 0x9fc8ff], windranger: ['longbow', 0xb0ffb0], gatling: ['shooter', 0xc8a888],
+  artillery: ['brawler', 0xc8d0d8], plaguebow: ['u_darkarcher', 0xa8ff88], nightstalker: ['u_archer', 0xb898ff],
+  // Lv.3 위저드
+  meteor: ['u_wizard', 0xffb070], thunderlord: ['arcane', 0x8fb0ff], dronelord: ['caster', 0x40ffff],
+  frostqueen: ['mage', 0xc8f4ff], necromancer: ['u_necromancer', 0xc898ff], voidlord: ['arcane'],
+};
+RD.UNIT_SPRITE_H = [76, 84, 94, 108];   // 레벨별 표시 키(px, 필드 기준)
+for (const id in RD.UNIT_CHARS) {
+  const [sheet, tint] = RD.UNIT_CHARS[id], s = RD.SPRITE_SHEETS && RD.SPRITE_SHEETS[sheet];
+  if (!s) continue;
+  RD.ASSETS.units[id] = {
+    type: 'spritesheet', sheet, url: s.url, frameWidth: s.fw, frameHeight: s.fh, smooth: true,
+    tint, bodyH: s.bodyH, originY: s.oy,
+    anims: { idle: { frames: s.idle, frameRate: 7 }, attack: { frames: s.attack, frameRate: 26, repeat: 0 } },
+  };
+}
+
+// 데모 스프라이트: 주소 끝에 ?demo=1 을 붙이면 슬라임 적에 예제 픽셀아트가 적용됩니다.
 if (typeof location !== 'undefined' && /[?&]demo=1/.test(location.search)) {
-  RD.ASSETS.units.archer = { type: 'spritesheet', url: 'assets/demo/archer.png', frameWidth: 16, frameHeight: 16, scale: 5,
-    anims: { idle: { frames: [0, 1], frameRate: 3 }, attack: { frames: [2, 3, 4], frameRate: 14, repeat: 0 } } };
   RD.ASSETS.enemies.slime = { type: 'spritesheet', url: 'assets/demo/slime.png', frameWidth: 16, frameHeight: 16, scale: 3.5,
     anims: { walk: { frames: [0, 1, 2, 3], frameRate: 8 } } };
 }
 
 // 단일 파일 빌드에서는 tools/build.js 가 RD.ASSET_DATA (경로 → dataURL) 를 채워 넣습니다.
 RD.assetUrl = url => (RD.ASSET_DATA && RD.ASSET_DATA[url]) || url;
+// 텍스처 키: 같은 캐릭터 시트(sheet)를 쓰는 유닛들은 텍스처·애니메이션을 공유
+RD.assetKey = (prefix, id, a) => a && a.sheet ? 'spr_sheet_' + a.sheet : prefix + id;
