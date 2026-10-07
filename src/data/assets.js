@@ -34,7 +34,12 @@ RD.ASSETS = {
   },
   enemies: {
   },
+  // 공격 효과음 (src/core/sfx.js 가 사용, 출처는 assets/audio/sfx/CREDITS.txt). 빌드 시 dist 에 내장됨
+  sfx: {},
 };
+['sword1', 'sword2', 'sword3', 'heavy1', 'heavy2', 'bow1', 'bow2', 'bow3', 'gun1', 'gun2', 'cannon1',
+ 'orb1', 'orb2', 'beam1', 'beam2', 'bolt1', 'fire1', 'fire2', 'holy1', 'holy2']
+  .forEach(k => { RD.ASSETS.sfx[k] = { url: `assets/audio/sfx/${k}.wav` }; });
 
 /* ── 소환 유닛 캐릭터 (gameasset 팩에서 추출: tools/extract_sprites.py → assets/units/, src/data/sprites_gen.js) ──
  *  유닛 id: [캐릭터 시트, 색조(tint, 생략 가능)]

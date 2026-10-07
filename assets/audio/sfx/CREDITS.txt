@@ -1,0 +1,23 @@
+공격 효과음 출처 (모두 CC0 / 퍼블릭 도메인: 상업적 사용 가능, 출처 표기 의무 없음)
+각 파일은 원본에서 한 번의 소리만 잘라 내고 페이드/음량 정규화(32kHz 모노 WAV)만 했습니다.
+
+sword1  Katana Swing.wav                - "Medieval Sound Effects - Weapon Textures" (Ben Jaszczak & Brian Nelson)
+sword2  Seax Swing.wav                  - 〃  https://opengameart.org/content/medieval-sound-effects-weapon-textures
+sword3  Dagger Swing.wav                - 〃
+heavy1  Axe Swing.wav + impactPunch_heavy_000.ogg (Kenney "Impact Sounds", https://kenney.nl/assets/impact-sounds)
+heavy2  Axe Swing.wav + impactPunch_heavy_001.ogg (〃)
+bow1    Scythian Recurve Shoot.wav      - Medieval Sound Effects - Weapon Textures
+bow2    English Longbow Shoot.wav       - 〃
+bow3    Crossbow Shoot.wav              - 〃
+gun1    shot_01.ogg                     - "100 CC0 SFX" (rubberduck) https://opengameart.org/content/100-cc0-sfx
+gun2    shot_02.ogg                     - 〃
+cannon1 explosionCrunch_000.ogg + lowFrequency_explosion_000.ogg - Kenney "Sci-fi Sounds" https://kenney.nl/assets/sci-fi-sounds
+orb1    spell_01.ogg                    - "80 CC0 RPG SFX" (rubberduck) https://opengameart.org/content/80-cc0-rpg-sfx
+orb2    spell_02.ogg                    - 〃
+beam1   laserSmall_001.ogg              - Kenney "Sci-fi Sounds"
+beam2   laserLarge_000.ogg              - Kenney "Sci-fi Sounds"
+bolt1   sfx100v2_thunder_01.ogg         - "100 CC0 SFX #2" (rubberduck) https://opengameart.org/content/100-cc0-sfx-2
+fire1   spell_fire_06.ogg               - "80 CC0 RPG SFX" (rubberduck)
+fire2   spell_fire_04.ogg               - 〃
+holy1   bell_01.ogg                     - "100 CC0 SFX" (rubberduck)
+holy2   bell_03.ogg                     - 〃
