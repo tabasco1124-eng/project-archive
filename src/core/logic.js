@@ -317,6 +317,7 @@ RD.GameLogic = (() => {
     attack(u, e) {
       const t = u.type, dmg = this.unitDmg(t);
       u.anim = 1;
+      if (RD.SFX) RD.SFX.attack(t);
       u.atk++;
       u.face = e.x < u.x - 4 ? -1 : e.x > u.x + 4 ? 1 : u.face || 1;
       // 레벨이 높을수록 공격 순간 섬광이 크고, Lv.3 은 적 위치에 충격파 추가

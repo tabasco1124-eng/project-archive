@@ -31,6 +31,8 @@ RD.BGM_TRACKS = [
   { from: 31, to: 45, url: 'assets/audio/bgm3_last_hope.mp3' },
 ];
 RD.BGM_VOLUME = 0.5;
+// 공격 효과음 전체 볼륨 (Web Audio, 0~1). 배경 음악이 잘 들리도록 낮게 유지
+RD.SFX_VOLUME = 0.35;
 
 // 밸런스 공식 (라운드 r 기준)
 RD.BAL = {
