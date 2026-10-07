@@ -279,6 +279,12 @@ RD.Textures = (() => {
       g.fillStyle(0x43a047, 1); g.fillCircle(16, 16, 13); g.lineStyle(3, 0x0b2e0d, 1); g.strokeCircle(16, 16, 13);
       g.fillStyle(0xffffff, 1); g.fillTriangle(16, 8.4, 23.2, 20.8, 8.8, 20.8);
     });
+    // 유닛 머리 위 레벨 표시 (레벨 색 바탕 + 검은 글자)
+    RD.GRADES.forEach((gr, i) => canvasTex(scene, 'lvtag_' + i, 74, 38, c => {
+      rrect(c, 2, 2, 70, 34, 12); c.fillStyle = gr.color; c.fill();
+      c.lineWidth = 3; c.strokeStyle = 'rgba(0,0,0,0.75)'; c.stroke();
+      c.font = `900 26px ${RD.FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#140c1c'; c.fillText(gr.name, 37, 21);
+    }));
     canvasTex(scene, 'coin', 48, 48, c => {
       c.beginPath(); c.arc(24, 24, 20, 0, TAU); c.fillStyle = '#ffc107'; c.fill();
       c.lineWidth = 4; c.strokeStyle = '#8a5a00'; c.stroke();

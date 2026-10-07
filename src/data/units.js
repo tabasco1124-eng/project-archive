@@ -27,6 +27,12 @@ RD.CATEGORIES = {
   wizard:  { name: '위저드', color: '#8c7bff' },
 };
 RD.CAT_KEYS = ['warrior', 'archer', 'wizard'];   // 강화 가능한 타입
+// 자동 조합 버튼 순서 (UI 하단 열과 맞춤: 워리어/아처/위저드 강화 위, Lv.0 은 채굴 위)
+RD.AUTO_KEYS = ['warrior', 'archer', 'wizard', 'none'];
+RD.AUTO_CATS = {
+  warrior: { name: '워리어' }, archer: { name: '아처' }, wizard: { name: '위저드' },
+  none:    { name: 'Lv.0' },
+};
 
 // 공격 속도 표기 → 공격 간격(초)
 RD.ATK_SPEED = { 매우느림: 2.2, 느림: 1.5, 보통: 1.0, 빠름: 0.65, 매우빠름: 0.4 };

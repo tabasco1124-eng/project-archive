@@ -29,19 +29,19 @@ RD.UIScene = class UIScene extends Phaser.Scene {
     ig.fillStyle(0x1e162a, 0.9).fillRoundedRect(r.x, r.y, r.w, r.h, 28);
     ig.lineStyle(3, 0xffc878, 0.18).strokeRoundedRect(r.x, r.y, r.w, r.h, 28);
     this.idle = [
-      this.add.text(W / 2, r.y + 56, '유닛을 터치하면 정보가 표시됩니다', S(34, '#e6dcf5')).setOrigin(0.5),
-      this.add.text(W / 2, r.y + 112, '드래그로 위치 이동  ·  같은 유닛 3개 → 다음 레벨 조합', S(26, '#a99bc0', 0, 'normal')).setOrigin(0.5),
-      this.add.text(W / 2, r.y + 160, '', S(26, '#8f82a6', 0, 'normal')).setOrigin(0.5),
+      this.add.text(W / 2, r.y + 46, '유닛을 터치하면 정보가 표시됩니다', S(34, '#e6dcf5')).setOrigin(0.5),
+      this.add.text(W / 2, r.y + 96, '드래그로 위치 이동  ·  같은 유닛 3개 → 다음 레벨 조합', S(26, '#a99bc0', 0, 'normal')).setOrigin(0.5),
+      this.add.text(W / 2, r.y + 138, '', S(26, '#8f82a6', 0, 'normal')).setOrigin(0.5),
     ];
     const tx = r.x + 200;
     this.sel = {
       tagG: this.add.graphics(),
-      tag: this.add.text(tx + 48, r.y + 50, '', S(28, '#1a1022')).setOrigin(0.5),
-      name: this.add.text(tx + 116, r.y + 50, '', S(42, '#ffffff')).setOrigin(0, 0.5),
-      count: this.add.text(r.x + r.w - 28, r.y + 50, '', S(28, '#b9aecb')).setOrigin(1, 0.5),
-      stats: this.add.text(tx, r.y + 108, '', S(28, '#e6dcf5', 0, 'normal')).setOrigin(0, 0.5),
-      special: this.add.text(tx, r.y + 158, '', S(28, '#ffffff')).setOrigin(0, 0.5),
-      dps: this.add.text(r.x + r.w - 28, r.y + 158, '', S(28, '#ffd54f')).setOrigin(1, 0.5),
+      tag: this.add.text(tx + 48, r.y + 44, '', S(28, '#1a1022')).setOrigin(0.5),
+      name: this.add.text(tx + 116, r.y + 44, '', S(42, '#ffffff')).setOrigin(0, 0.5),
+      count: this.add.text(r.x + r.w - 28, r.y + 44, '', S(28, '#b9aecb')).setOrigin(1, 0.5),
+      stats: this.add.text(tx, r.y + 94, '', S(28, '#e6dcf5', 0, 'normal')).setOrigin(0, 0.5),
+      special: this.add.text(tx, r.y + 138, '', S(28, '#ffffff')).setOrigin(0, 0.5),
+      dps: this.add.text(r.x + r.w - 28, r.y + 138, '', S(28, '#ffd54f')).setOrigin(1, 0.5),
     };
     this.preview = null; this.previewType = null;
 
@@ -61,6 +61,19 @@ RD.UIScene = class UIScene extends Phaser.Scene {
     };
     this.upgBtns = RD.CAT_KEYS.map((k, i) => new RD.UIButton(this, UI.upg[i], { scheme: k, labelSize: 40, onClick: act(L => L.upgrade(k)) }));
     this.btn.mine = new RD.UIButton(this, UI.btnMine, { scheme: 'mine', labelSize: 40, onClick: act(L => L.upgradeMine()) });
+    // 타입별 자동 조합 (버튼 아래 줄에 레벨별 보유 수 표시)
+    this.autoBtns = RD.AUTO_KEYS.map((k, i) => new RD.UIButton(this, UI.auto[i], {
+      scheme: 'dark', labelSize: 34, subSize: 24, labelColor: RD.CATEGORIES[k].color, dimSubColor: '#8a8199',
+      onClick: act(L => L.autoCombine(k)) }));
+    // 레벨별 보유 수 칩 (레벨 색 = 유닛 머리 위 레벨 표시 색)
+    this.autoChips = RD.AUTO_KEYS.map((k, i) => {
+      const b = UI.auto[i], grades = k === 'none' ? [0] : [1, 2, 3], cw = k === 'none' ? 120 : 76, gap = 6;
+      const x0 = b.x + b.w / 2 - (grades.length * cw + (grades.length - 1) * gap) / 2, cy = b.y + b.h - 30;
+      const g = this.add.graphics();
+      const chips = grades.map((gr, j) => ({ gr, x: x0 + j * (cw + gap), w: cw,
+        t: this.add.text(x0 + j * (cw + gap) + cw / 2, cy + 1, '', S(21, '#140c1c', 0)).setOrigin(0.5) }));
+      return { g, chips, cy, last: '' };
+    });
 
     // ── 일시정지 오버레이 ──
     this.pauseLayer = this.add.container(0, 0).setDepth(40).setVisible(false);
@@ -74,7 +87,7 @@ RD.UIScene = class UIScene extends Phaser.Scene {
     // ── 알림 ──
     this.toasts = [];
 
-    // ── PC 단축키: S 소환, D 조합, F 판매, 1/2/3 강화, 4 채굴 강화, Space 배속, P/Esc 일시정지 ──
+    // ── PC 단축키: S 소환, D 조합, F 판매, 1/2/3 강화, 4 채굴 강화, Q/W/E/R 자동 조합, Space 배속, P/Esc 일시정지 ──
     if (this.input.keyboard) {
       this.input.keyboard.on('keydown', e => {
         const L = this.L, G = L.G;
@@ -88,6 +101,7 @@ RD.UIScene = class UIScene extends Phaser.Scene {
         else if (k === 'f') L.sell(G.selected);
         else if (k === '1' || k === '2' || k === '3') L.upgrade(RD.CAT_KEYS[+k - 1]);
         else if (k === '4') L.upgradeMine();
+        else if ('qwer'.includes(k) && k.length === 1) L.autoCombine(RD.AUTO_KEYS['qwer'.indexOf(k)]);
       });
     }
   }
@@ -154,7 +168,7 @@ RD.UIScene = class UIScene extends Phaser.Scene {
         if (this.preview) this.preview.destroy();
         const body = RD.Textures.unitBody(this, t, true);
         const frame = this.add.image(0, 0, 'frameL_' + t.grade);
-        this.preview = this.add.container(r.x + 100, r.y + 100, [body, frame]);
+        this.preview = this.add.container(r.x + 100, r.y + 86, [body, frame]).setScale(0.94);
         this.preview.frameImg = frame;
         this.previewType = t;
         const tg = this.sel.tagG; tg.clear();
@@ -162,7 +176,7 @@ RD.UIScene = class UIScene extends Phaser.Scene {
       }
       const gc = U.gradeColorInt(t.grade);
       this.preview.frameImg.setTint(gc);
-      if (this.tagColor !== gc) { this.tagColor = gc; this.sel.tagG.clear().fillStyle(gc, 1).fillRoundedRect(r.x + 200, r.y + 24, 96, 48, 14); }
+      if (this.tagColor !== gc) { this.tagColor = gc; this.sel.tagG.clear().fillStyle(gc, 1).fillRoundedRect(r.x + 200, r.y + 20, 96, 48, 14); }
       setText(this.sel.tag, RD.GRADES[t.grade].name);
       setText(this.sel.name, t.name);
       const cnt = L.countType(t.id);
@@ -187,6 +201,20 @@ RD.UIScene = class UIScene extends Phaser.Scene {
     const mMax = G.mineLv >= C.mineMaxLevel, mCost = RD.BAL.mineCost(G.mineLv);
     this.btn.mine.set(`채굴 +${U.fmt1(L.mineRate())}/초`, mMax ? `Lv.${G.mineLv} · 최대` : `Lv.${G.mineLv} · ${fmt(mCost)}${CUR[CC.mineUpgrade].name}`,
       !mMax && L.canAfford(CC.mineUpgrade, mCost));
+    const lc = L.levelCounts();
+    RD.AUTO_KEYS.forEach((k, i) => {
+      const n = lc[k], ok = !!L.findMergeable(k), ch = this.autoChips[i];
+      this.autoBtns[i].set(`${RD.AUTO_CATS[k].name} 조합`, ' ', ok);
+      const key = n.join(',') + ok;
+      if (ch.last !== key) {
+        ch.last = key; ch.g.clear();
+        for (const c of ch.chips) {
+          const v = n[c.gr];
+          ch.g.fillStyle(U.gradeColorInt(c.gr), v ? 1 : 0.35).fillRoundedRect(c.x, ch.cy - 16, c.w, 32, 10);
+          setText(c.t, `${RD.GRADES[c.gr].name.replace('.', '')} ×${v}`, v ? '#140c1c' : '#3a3046');
+        }
+      }
+    });
     this.btn.pause.set('', '', true, G.mode === 'paused' ? 'play' : 'pause');
     this.btn.speed.set(G.speed + 'x', '', true);
 

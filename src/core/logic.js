@@ -177,6 +177,49 @@ RD.GameLogic = (() => {
       this.toast(`조합 성공!  [${RD.GRADES[nt.grade].name}] ${nt.name}`, RD.GRADES[nt.grade].color);
       return nu;
     }
+    // 타입별 레벨 보유 수: { none:[n0], warrior:[n0,n1,n2,n3], ... }
+    levelCounts() {
+      const out = {}, n = RD.GRADES.length;
+      for (const k of RD.AUTO_KEYS) out[k] = new Array(n).fill(0);
+      for (const u of this.G.units) out[u.type.cat][u.type.grade]++;
+      return out;
+    }
+    // 해당 타입에서 지금 조합 가능한 유닛 묶음 (낮은 레벨 우선) → 같은 유닛 배열 또는 null
+    findMergeable(cat) {
+      const maxG = RD.GRADES.length - 1, groups = {};
+      for (const u of this.G.units) {
+        const t = u.type;
+        if (t.cat !== cat || t.grade >= maxG) continue;
+        (groups[t.id] = groups[t.id] || []).push(u);
+      }
+      let best = null;
+      for (const id in groups) {
+        const g = groups[id];
+        if (g.length >= 3 && (!best || g[0].type.grade < best[0].type.grade)) best = g;
+      }
+      return best;
+    }
+    // 자동 조합: 낮은 레벨부터 더 이상 조합할 수 없을 때까지 반복
+    //  Lv.0(무타입) 은 조합하면 다른 타입 Lv.1 이 되므로 'none' 버튼에서는 Lv.0 만 처리
+    autoCombine(cat) {
+      const G = this.G, made = [];
+      let g;
+      while ((g = this.findMergeable(cat))) {
+        const t = g[0].type;
+        const { col, row } = g[0];
+        this.removeUnit(g[0]); this.removeUnit(g[1]); this.removeUnit(g[2]);
+        const nt = pick(RD.combineTargets(t));
+        const nu = this.addUnit(nt, col, row);
+        this.addFx({ k: 'combine', x: nu.x, y: nu.y, r: 92, color: gradeColorStr(nt.grade), life: 0.7 });
+        made.push(nt);
+      }
+      const name = RD.AUTO_CATS[cat].name;
+      if (!made.length) return this.toast(`${name}: 조합할 유닛이 없습니다`, '#ff8a80');
+      G.selected = null;
+      const top = made.reduce((a, b) => (b.grade > a.grade ? b : a));
+      this.toast(`${name} 자동 조합 ${made.length}회  ·  최고 [${RD.GRADES[top.grade].name}] ${top.name}`, RD.GRADES[top.grade].color);
+      return made;
+    }
     sell(u) {
       if (!u) return this.toast('유닛을 먼저 선택하세요', '#ff8a80');
       const g = RD.GRADES[u.type.grade].sell;

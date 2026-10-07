@@ -129,6 +129,8 @@ RD.GameScene = class GameScene extends Phaser.Scene {
     c.add(c.frameImg);
     c.badge = this.add.image(30, -30, 'badge').setVisible(false);
     c.add(c.badge);
+    c.lvTag = this.add.image(-22, -42, 'lvtag_' + t.grade);     // 레벨 표시 (왼쪽 위)
+    c.add(c.lvTag);
     c.grade = t.grade; c.lastAtk = 0;
     this.tintUnitView(c, time0());
     return c;

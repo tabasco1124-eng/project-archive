@@ -9,10 +9,11 @@ RD.UIButton = class UIButton {
     const cx = r.x + r.w / 2, cy = r.y + r.h / 2, S = RD.util.textStyle;
     this.shadow = scene.add.image(r.x - 4, r.y + 4, RD.Textures.buttonShadow(scene, r.w, r.h)).setOrigin(0);
     this.bg = scene.add.image(r.x - 4, r.y - 4, RD.Textures.button(scene, this.scheme, r.w, r.h, true)).setOrigin(0);
-    const tc = RD.Textures.SCHEMES[this.scheme][2];
-    this.tc = tc;
-    this.label = scene.add.text(cx, cy, '', S(opts.labelSize || (this.big ? 60 : 48), tc, tc === '#ffffff' ? 6 : 0)).setOrigin(0.5);
-    this.sub = scene.add.text(cx, cy + 40, '', S(28, tc === '#ffffff' ? '#ffffffd9' : '#4a2600')).setOrigin(0.5);
+    const sc = RD.Textures.SCHEMES[this.scheme][2], tc = opts.labelColor || sc;
+    this.tc = tc; this.light = sc === '#ffffff';      // 밝은 글자(외곽선 있음) 스킴인지
+    this.dimSub = opts.dimSubColor || '#5d5570';      // 비활성 시 보조 글자 색
+    this.label = scene.add.text(cx, cy, '', S(opts.labelSize || (this.big ? 60 : 48), tc, this.light ? 6 : 0)).setOrigin(0.5);
+    this.sub = scene.add.text(cx, cy + 40, '', S(opts.subSize || 28, this.light ? '#ffffffd9' : '#4a2600')).setOrigin(0.5);
     this.icon = scene.add.graphics();
     this.zone = scene.add.zone(r.x, r.y, r.w, r.h).setOrigin(0).setInteractive({ useHandCursor: true });
     this.zone.on('pointerdown', () => { this.pressed = true; this.layout(); });
@@ -33,17 +34,17 @@ RD.UIButton = class UIButton {
       this.enabled = enabled; this.iconName = iconName;
       this.bg.setTexture(RD.Textures.button(this.scene, this.scheme, this.r.w, this.r.h, enabled));
       this.label.setColor(enabled ? this.tc : '#6f6680');
-      this.label.setStroke('#000000', enabled && this.tc === '#ffffff' ? 6 : 0);
-      this.sub.setColor(enabled ? (this.tc === '#ffffff' ? '#ffffffd9' : '#4a2600') : '#5d5570');
+      this.label.setStroke('#000000', enabled && this.light ? 6 : 0);
+      this.sub.setColor(enabled ? (this.light ? '#ffffffd9' : '#4a2600') : this.dimSub);
       this.layout();
     }
   }
   layout() {
     const r = this.r, off = this.pressed ? 6 : 0, cx = r.x + r.w / 2, cy = r.y + r.h / 2 + off;
     this.bg.y = r.y - 4 + off;
-    const hasSub = this.sub.text !== '';
-    this.label.setPosition(cx, hasSub ? cy - 24 : cy + 2);
-    this.sub.setPosition(cx, cy + 40);
+    const hasSub = this.sub.text !== '', k = Math.min(1, r.h / 168);   // 낮은 버튼은 글자 간격을 줄임
+    this.label.setPosition(cx, hasSub ? cy - 24 * k : cy + 2);
+    this.sub.setPosition(cx, cy + 40 * k);
     const g = this.icon; g.clear();
     if (this.iconName) {
       g.fillStyle(this.enabled ? 0xffffff : 0x6f6680, 1);
