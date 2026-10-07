@@ -97,6 +97,9 @@ RD.GameScene = class GameScene extends Phaser.Scene {
   update(time, delta) {
     const dt = Math.min(0.05, delta / 1000), L = this.logic, G = L.G;
     if (G.mode === 'playing') for (let i = 0; i < G.speed && G.mode === 'playing'; i++) L.update(dt);
+    // 배경 음악: 라운드 구간별 트랙, 일시정지/게임 오버 시 멈춤
+    if (G.mode === 'over') RD.BGM.stop();
+    else { RD.BGM.setRound(G.round); RD.BGM.setPaused(G.mode === 'paused'); }
 
     // 포인터가 다른 씬 위에서 떼어져 up 이벤트를 놓친 경우 대비
     if (this.drag) {

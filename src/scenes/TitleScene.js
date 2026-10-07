@@ -183,6 +183,7 @@ RD.TitleScene = class TitleScene extends Phaser.Scene {
   dive() {
     if (this.started) return;
     this.started = true;
+    RD.BGM.start(0);                       // 터치 이벤트 안에서 시작해야 모바일 자동재생 제한에 안 걸림
     this.linkState.setText('● DIVING').setColor('#00e5ff');
     this.ticker.setText('> 뉴럴 다이브 개시. 결계 진입...');
     const cam = this.cameras.main;
