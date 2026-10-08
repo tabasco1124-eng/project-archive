@@ -1,7 +1,7 @@
 /* LobbyScene: 지휘관 로비
  *  기억 파편 / 최고 기록 / 뉴럴 싱크 슬롯(히로인 카드 3장) / 싱크 효과 / 난이도 / 다이브 시작 / 갤러리 / 메모리 캡슐 / 작전 브리핑
  * 레이아웃 (1080x1920 기준)
- *   y 40~150     제목(왼쪽) + 기억 파편 칩(오른쪽, 640~1040)
+ *   y 40~150     제목(왼쪽) + [백업] 155x100 (x 455) + 기억 파편 칩(오른쪽, 640~1040)
  *   y 205~250    최고 기록 / 기억 복원율
  *   y 300        '뉴럴 싱크' 제목
  *   y 350~770    싱크 슬롯 3칸 (각 300x420, 가운데 x 210 / 540 / 870)
@@ -34,6 +34,7 @@ RD.LobbyScene = class LobbyScene extends Phaser.Scene {
     this.add.text(750, 76, '기억 파편', S(24, '#7dffb0', 0, 'normal')).setOrigin(0, 0.5);
     this.tFrag = this.add.text(750, 118, fmt(RD.Meta.fragments), S(40, '#ffffff')).setOrigin(0, 0.5);
     this.add.graphics().lineStyle(2, 0x00e5ff, 0.4).lineBetween(60, 180, W - 60, 180);
+    RD.Neon.button(this, { x: 455, y: 50, w: 155, h: 100 }, '백업', '', 0x7fa8c9, () => this.openBackup(), { size: 34 });
 
     // ── 기록 ──
     const best = RD.DIFF_KEYS.map(k => `${RD.DIFFICULTIES[k].name} ${SV.stats.best[k] ? 'R' + SV.stats.best[k] : '—'}`).join('  ·  ');
@@ -207,6 +208,55 @@ RD.LobbyScene = class LobbyScene extends Phaser.Scene {
     c.add(close);
     dim.on('pointerup', () => this.closeBriefing());
     this.modal = c;
+  }
+
+  /* 데이터 백업: 저장 데이터를 코드(문자열)로 복사하거나, 코드를 붙여넣어 복원 (RD.Save.exportString / importString)
+   *  폰 브라우저 데이터가 지워졌을 때, 다른 기기·브라우저로 옮길 때 사용 */
+  openBackup() {
+    if (this.modal) return;
+    const W = RD.W, H = RD.H, S = RD.util.textStyle;
+    const c = this.add.container(0, 0).setDepth(100);
+    const dim = this.add.rectangle(0, 0, W, H, 0x02010a, 0.88).setOrigin(0).setInteractive();
+    const g = this.add.graphics();
+    g.fillStyle(0x0b0f24, 0.97).fillRect(80, 480, W - 160, 940);
+    g.lineStyle(4, 0x7fa8c9, 1).strokeRect(80, 480, W - 160, 940);
+    c.add([dim, g]);
+    c.add(this.add.text(W / 2, 570, '데이터 백업', S(56, '#ffffff')).setOrigin(0.5).setShadow(0, 0, '#00e5ff', 16, false, true));
+    c.add(this.add.text(W / 2, 680, [
+      '진행 상황(기억 파편 · 히로인 카드 · 기록 · 업적)을',
+      '백업 코드로 복사해 메모장이나 메신저에 보관하세요.',
+      '브라우저 데이터가 지워지거나 기기를 바꿨을 때',
+      '코드를 붙여넣으면 그대로 복원됩니다.',
+    ].join('\n'), S(28, '#c9d4ea', 0, 'normal')).setOrigin(0.5, 0).setAlign('center').setLineSpacing(10));
+    const b1 = RD.Neon.button(this, { x: 190, y: 900, w: 700, h: 120 }, '백업 코드 복사', '', 0x00e5ff, () => this.copyBackup(), { size: 40, modal: true });
+    const b2 = RD.Neon.button(this, { x: 190, y: 1060, w: 700, h: 120 }, '코드로 불러오기', '', 0xffc935, () => this.importBackup(), { size: 40, modal: true });
+    const b3 = RD.Neon.button(this, { x: 340, y: 1240, w: 400, h: 110 }, '닫기', '', 0xff2bd6, () => this.closeBriefing(), { size: 38, modal: true });
+    [b1, b2, b3].forEach(b => b.addTo(c));
+    this.modal = c;
+  }
+
+  copyBackup() {
+    const code = RD.Save.exportString();
+    const fallback = () => window.prompt('아래 코드를 전체 선택해 복사하세요', code);
+    const ok = () => RD.Neon.toast(this, '복사 완료! 메모장 등에 붙여넣어 보관하세요', '#7dffb0', 1460);
+    try {
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(code).then(ok, fallback);
+      else fallback();
+    } catch (e) { fallback(); }
+  }
+
+  importBackup() {
+    const code = window.prompt('백업 코드를 붙여넣으세요 (PA1- 로 시작)');
+    if (!code) return;
+    if (!window.confirm('지금 데이터를 백업 코드의 데이터로 덮어씁니다. 계속할까요?')) return;
+    try {
+      RD.Save.importString(code);
+    } catch (e) {
+      RD.Neon.toast(this, `불러오기 실패: ${e.message}`, '#ff8a80', 1460);
+      return;
+    }
+    this.scene.restart();
+    this.events.once('create', () => RD.Neon.toast(this, '백업 코드로 복원했습니다', '#7dffb0', 1460));
   }
 
   closeBriefing() {

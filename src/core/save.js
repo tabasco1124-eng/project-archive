@@ -51,6 +51,8 @@ RD.Save = (() => {
   };
 
   let data = null;
+  // 백업 코드 체크섬 (오타·잘림 감지용, 보안 목적 아님)
+  function checksum(str) { let h = 7; for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) % 1679616; return h.toString(36).padStart(4, '0'); }
   function load() {
     let d = null;
     try { d = store && JSON.parse(store.getItem(KEY) || 'null'); } catch (e) { d = null; }
@@ -74,13 +76,22 @@ RD.Save = (() => {
     load,
     // 모든 진행 초기화 (디버그용: 콘솔에서 RD.Save.reset())
     reset() { data = fresh(); save(); return data; },
-    // 백업 문자열 (나중에 '데이터 이전' 기능에 사용)
-    exportString() { return btoa(unescape(encodeURIComponent(JSON.stringify(data)))); },
-    importString(s) {
-      const d = JSON.parse(decodeURIComponent(escape(atob(s))));
-      if (!d || typeof d !== 'object') throw new Error('잘못된 저장 데이터');
+    // 백업 코드: 'PA1-' + 체크섬 4자리 + '-' + base64(JSON). 로비 [백업] 에서 복사 / 붙여넣기
+    exportString() {
+      const body = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+      return `PA1-${checksum(body)}-${body}`;
+    },
+    // 코드 검사 후 저장 데이터를 통째로 교체. 잘못된 코드면 Error (메시지는 화면에 그대로 표시)
+    importString(code) {
+      const m = String(code || '').replace(/\s+/g, '').match(/^PA1-([0-9a-z]{4})-([A-Za-z0-9+/=]+)$/);
+      if (!m) throw new Error('백업 코드 형식이 아닙니다');
+      if (checksum(m[2]) !== m[1]) throw new Error('코드가 일부 잘렸거나 바뀌었습니다');
+      let d;
+      try { d = JSON.parse(decodeURIComponent(escape(atob(m[2])))); } catch (e) { throw new Error('코드를 읽을 수 없습니다'); }
+      if (!d || typeof d !== 'object' || !d.meta || !d.stats) throw new Error('프로젝트 아카이브 저장 데이터가 아닙니다');
       if (store) store.setItem(KEY, JSON.stringify(d));
-      return load();
+      else data = d;
+      return store ? load() : (data = merge(fresh(), d));
     },
     VERSION,
   };
