@@ -90,7 +90,7 @@ RD.GameScene = class GameScene extends Phaser.Scene {
   }
   endDrag() {
     this.drag = null;
-    if (this.dragGhost) { this.dragGhost.destroy(); this.dragGhost = null; }
+    if (this.dragGhost) { this.viewDestroy(this.dragGhost); this.dragGhost = null; }
   }
 
   // ── 메인 루프 ──
@@ -118,16 +118,29 @@ RD.GameScene = class GameScene extends Phaser.Scene {
   }
 
   // ── 유닛 ──
+  //  유닛 하나 = 본체 컨테이너(몸통·레벨 표시) + 층별 보조 컨테이너 3개 (그림자 / 바닥 이펙트·외곽 발광 / 위쪽 입자)
+  //  같은 블렌드(ADD/일반)끼리 깊이를 모아 그려야 GPU 배치가 끊기지 않음 (유닛마다 섞여 있으면 유닛 수 × 4 번 드로우)
   createUnitView(t) {
     const c = this.add.container(0, 0).setDepth(3);
+    c.layers = [this.add.container(0, 0), this.add.container(0, 0), this.add.container(0, 0)];   // 그림자, 바닥(ADD), 위(ADD)
+    this.viewDepth(c, 3);
     const body = RD.Textures.unitBody(this, t, false);
     c.shadowImg = this.add.image(0, 32, 'shadow');
-    c.add(c.shadowImg);
+    c.layers[0].add(c.shadowImg);
     if (body.rdSprite) this.addLevelFx(c, t);
     else if (t.grade >= 3) { c.halo = this.add.image(0, 0, 'halo').setAlpha(0.22); c.add(c.halo); }
     c.body = body;
+    // Lv.2 이상 외곽 발광: 몸통과 같은 프레임을 레벨 색 단색(tintFill) + ADD 로 살짝 크게 뒤에 그림
+    //  (preFX 글로우보다 훨씬 가벼움: 같은 텍스처라 한 배치로 그려지고 프레임버퍼 전환이 없음)
+    if (body.rdSprite && t.grade >= 2) {
+      const k = t.hidden ? 1.14 : t.grade >= 3 ? 1.11 : 1.08;
+      c.rim = this.add.sprite(0, 0, body.texture.key, body.frame.name).setOrigin(body.originX, body.originY)
+        .setScale(body.scaleX * k, body.scaleY * (1 + (k - 1) * 0.6)).setTintFill(RD.util.colorInt(RD.unitColorStr(t)))
+        .setBlendMode(Phaser.BlendModes.ADD).setAlpha(t.hidden ? 0.6 : t.grade >= 3 ? 0.5 : 0.38);
+      c.layers[1].add(c.rim);
+    }
     c.add(body);
-    if (c.fxTop) c.add(c.fxTop);
+    if (c.fxTop) c.layers[2].add(c.fxTop);
     c.frameImg = this.add.image(0, body.rdSprite ? 44 : 0, (body.rdSprite ? 'pips_' : 'frame_') + t.grade);
     c.add(c.frameImg);
     c.badge = this.add.image(30, -30, 'badge').setVisible(false);
@@ -138,6 +151,9 @@ RD.GameScene = class GameScene extends Phaser.Scene {
     this.tintUnitView(c, time0());
     return c;
   }
+  viewDepth(v, d) { v.setDepth(d); v.layers[0].setDepth(d - 0.3); v.layers[1].setDepth(d - 0.2); v.layers[2].setDepth(d + 0.2); return v; }
+  viewPlace(v, x, y, scale, alpha) { for (const o of [v, ...v.layers]) { o.setPosition(x, y); o.setScale(scale); o.setAlpha(alpha); } }
+  viewDestroy(v) { v.layers.forEach(l => l.destroy()); v.destroy(); }
   // ── 레벨별 이펙트 (캐릭터 스프라이트 유닛) ──
   //  Lv.0 그림자만 · Lv.1 바닥 링(타입 색) · Lv.2 육각 마법진 + 오라 + 떠오르는 빛 입자 + 외곽 발광
   //  Lv.3 이중 회전 마법진 + 빛기둥 + 큰 오라 + 궤도 입자 + 강한 발광 (발광은 Textures.unitBody)
@@ -149,7 +165,7 @@ RD.GameScene = class GameScene extends Phaser.Scene {
     if (g < 1) return;
     const fx = c.fx = { g, runes: [], sparks: [], orbit: [], seed: Math.random() * 1000, rainbow: !!t.hidden };
     const ground = this.add.container(0, 32).setScale(1, 0.4);     // 바닥 평면 (회전해도 눕혀 보이도록)
-    c.add(ground);
+    c.layers[1].add(ground);
     const r1 = this.add.image(0, 0, 'fx_rune' + Math.min(g, 3)).setBlendMode(ADD)
       .setTint(g === 1 ? catCol : col).setAlpha(g === 1 ? 0.6 : 0.85).setScale([0, 0.44, 0.52, 0.6][g] + big);
     ground.add(r1); fx.runes.push([r1, g === 1 ? 0.4 : 0.7]);
@@ -157,11 +173,11 @@ RD.GameScene = class GameScene extends Phaser.Scene {
       const r2 = this.add.image(0, 0, 'fx_rune2').setBlendMode(ADD).setTint(catCol).setAlpha(0.7).setScale(0.82 + big);
       ground.add(r2); fx.runes.push([r2, -0.45]);
       fx.pillar = this.add.image(0, 34, 'fx_pillar').setOrigin(0.5, 1).setBlendMode(ADD).setTint(col).setAlpha(0.2).setScale(1.1, 0.9);
-      c.add(fx.pillar);
+      c.layers[1].add(fx.pillar);
     }
     if (g >= 2) {
       fx.aura = this.add.image(0, 0, 'fx_soft').setBlendMode(ADD).setTint(col).setAlpha(g >= 3 ? 0.32 : 0.25).setScale((g >= 3 ? 1.2 : 1) + big * 2);
-      c.add(fx.aura);
+      c.layers[1].add(fx.aura);
       // 떠오르는 입자 + (Lv.3) 궤도 입자 → 몸통 위에 그림
       c.fxTop = this.add.container(0, 0);
       const n = g >= 3 ? 6 + Math.min(4, t.grade - 3) : 4;
@@ -186,6 +202,7 @@ RD.GameScene = class GameScene extends Phaser.Scene {
       const rc = RD.util.colorInt('rainbow');
       fx.runes[0][0].setTint(rc); if (fx.aura) fx.aura.setTint(rc); if (fx.pillar) fx.pillar.setTint(rc);
       fx.sparks.forEach((sp, i) => { if (i % 2) sp.setTint(rc); });
+      if (c.rim) c.rim.setTintFill(rc);
     }
     const n = fx.sparks.length;
     fx.sparks.forEach((sp, i) => {
@@ -214,14 +231,13 @@ RD.GameScene = class GameScene extends Phaser.Scene {
     for (const u of G.units) {
       let v = this.unitViews.get(u);
       if (!v) { v = this.createUnitView(u.type); this.unitViews.set(u, v); }
-      v.setPosition(u.x, u.y);
       const pop = u.born < 1 ? 0.4 + 0.6 * u.born : 1;
-      v.setScale(pop * (1 + 0.1 * u.anim));
-      v.setAlpha(u === dragU ? 0.3 : 1);
+      this.viewPlace(v, u.x, u.y, pop * (1 + 0.1 * u.anim), u === dragU ? 0.3 : 1);
       v.badge.setVisible(u !== dragU && ((counts[u.type.id] >= 3 && RD.canMerge(u.type)) || ready.has(u)));
       if (u.type.grade >= 3) this.tintUnitView(v, time);
       this.animLevelFx(v, time);
       if (v.body.rdSprite && u.face) v.body.setFlipX(u.face < 0);   // 공격한 적 쪽을 바라봄 (시트는 오른쪽 방향)
+      if (v.rim) { v.rim.setFrame(v.body.frame.name, false, false); v.rim.setFlipX(v.body.flipX); }
       // 스프라이트시트 공격 애니메이션
       if (v.lastAtk !== u.atk) {
         v.lastAtk = u.atk;
@@ -235,7 +251,7 @@ RD.GameScene = class GameScene extends Phaser.Scene {
         }
       }
     }
-    for (const [u, v] of this.unitViews) if (u.removed) { v.destroy(); this.unitViews.delete(u); }
+    for (const [u, v] of this.unitViews) if (u.removed) { this.viewDestroy(v); this.unitViews.delete(u); }
   }
 
   // ── 적 ──
@@ -399,12 +415,13 @@ RD.GameScene = class GameScene extends Phaser.Scene {
     const d = this.drag;
     if (d && d.dragging && d.unit) {
       if (!this.dragGhost) {
-        this.dragGhost = this.createUnitView(d.unit.type).setDepth(9).setAlpha(0.9).setScale(1.15);
+        this.dragGhost = this.viewDepth(this.createUnitView(d.unit.type), 9);
       }
-      this.dragGhost.setPosition(d.x, d.y - 20);
+      this.viewPlace(this.dragGhost, d.x, d.y - 20, 1.15, 0.9);
       if (d.unit.type.grade >= 3) this.tintUnitView(this.dragGhost, performance.now());
       this.animLevelFx(this.dragGhost, performance.now());
-    } else if (this.dragGhost) { this.dragGhost.destroy(); this.dragGhost = null; }
+      const gh = this.dragGhost; if (gh.rim) gh.rim.setFrame(gh.body.frame.name, false, false);
+    } else if (this.dragGhost) { this.viewDestroy(this.dragGhost); this.dragGhost = null; }
   }
 };
 

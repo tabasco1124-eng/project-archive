@@ -355,9 +355,10 @@ RD.Textures = (() => {
       spr.setScale(base * (large ? UNIT_RL / UNIT_R * 0.8 : 1));
       if (a.originY !== undefined) spr.setOrigin(0.5, a.originY);
       if (a.tint !== undefined) spr.setTint(a.tint);
-      // 레벨 2 이상: 외곽 발광 (WebGL 전용 preFX)
-      //  히든은 히든 색으로 더 강하게
-      if (t.grade >= 2 && spr.preFX) spr.preFX.addGlow(RD.util.colorInt(RD.unitTextColor(t)), t.hidden ? 4 : t.grade >= 3 ? 3 : 2, 0, false, 0.1, t.hidden ? 12 : 8);
+      // 레벨 2 이상: 외곽 발광 (WebGL 전용 preFX) — 정보창 미리보기(1개)에만 사용
+      //  preFX 는 오브젝트마다 프레임버퍼를 여러 번 바꿔 그려서, 필드 유닛 수십 개에 쓰면 모바일 GPU 가 버티지 못함
+      //  (70스테이지 무렵 Lv.2+ 유닛 45개 → 프레임당 프레임버퍼 전환 180회 → 튕김). 필드 유닛은 GameScene 의 테두리 스프라이트로 대신함
+      if (large && t.grade >= 2 && spr.preFX) spr.preFX.addGlow(RD.util.colorInt(RD.unitTextColor(t)), t.hidden ? 4 : t.grade >= 3 ? 3 : 2, 0, false, 0.1, t.hidden ? 12 : 8);
       if (scene.anims.exists(key + '_idle')) spr.play({ key: key + '_idle', startFrame: Math.floor(Math.random() * 4) });
       spr.rdSprite = { key, attack: scene.anims.exists(key + '_attack') ? key + '_attack' : null, idle: scene.anims.exists(key + '_idle') ? key + '_idle' : null };
       return spr;
