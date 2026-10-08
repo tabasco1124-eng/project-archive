@@ -26,6 +26,8 @@ RD.GameLogic = (() => {
         kills: 0,
         speed: opts.speed || 1,
         upg: { warrior: 0, archer: 0, wizard: 0 },   // 타입 강화 레벨
+        hiddenLv: 0,                // 히든 강화 레벨 (히든 유닛 공격력 배율)
+        hiddenUnlocked: false,      // 히든 유닛을 한 번이라도 가지면 true → 히든 강화 버튼 표시
         units: [], enemies: [], projectiles: [], effects: [], floats: [],
         grid,
         selected: null,
@@ -100,7 +102,11 @@ RD.GameLogic = (() => {
     // ── 유닛 ──
     countType(id) { let c = 0; for (const u of this.G.units) if (u.type.id === id) c++; return c; }
     // 공격력 = 기본 공격력 + 공격력 계수 × 타입 강화 레벨 (Lv.0 은 타입이 없어 강화 영향 없음)
-    unitDmg(t) { return t.dmg + (t.coef || 0) * (this.G.upg[t.cat] || 0); }
+    //  히든 유닛은 여기에 히든 강화 배율을 곱함
+    unitDmg(t) {
+      const d = t.dmg + (t.coef || 0) * (this.G.upg[t.cat] || 0);
+      return t.hidden ? d * RD.BAL.hiddenMult(this.G.hiddenLv) : d;
+    }
     freeCells() {
       const out = [], grid = this.G.grid;
       for (let r = 0; r < RD.GRID.rows; r++) for (let c = 0; c < RD.GRID.cols; c++) if (!grid[r][c]) out.push({ col: c, row: r });
@@ -123,6 +129,11 @@ RD.GameLogic = (() => {
       const u = { uid: G.uid++, type, col, row, x: p.x, y: p.y, cd: rand(0, 0.4), anim: 0, born: 0, atk: 0, removed: false };
       G.grid[row][col] = u;
       G.units.push(u);
+      RD.Codex.see(type.id);
+      if (type.hidden && !G.hiddenUnlocked) {
+        G.hiddenUnlocked = true;
+        this.toast('히든 강화가 열렸습니다!', RD.HIDDEN_COLOR);
+      }
       return u;
     }
     removeUnit(u) {
@@ -158,38 +169,81 @@ RD.GameLogic = (() => {
       const t = pick(RD.UNITS_BY_GRADE[0]);
       const u = this.addUnit(t, cell.col, cell.row);
       this.addFloat(u.x, u.y - 52, t.name, '#ffffff', 26);
-      this.addFx({ k: 'ring', x: u.x, y: u.y, r: 52, color: gradeColorStr(t.grade), life: 0.4 });
+      this.addFx({ k: 'ring', x: u.x, y: u.y, r: 52, color: RD.unitColorStr(t), life: 0.4 });
       return u;
     }
+    // 선택한 유닛으로 조합: 같은 유닛 3개가 있으면 일반 조합, 없으면 이 유닛이 들어가는 히든 레시피
     combine(u) {
       const G = this.G;
       if (!u) return this.toast('유닛을 먼저 선택하세요', '#ff8a80');
       const t = u.type;
-      if (t.grade >= RD.GRADES.length - 1) return this.toast('이미 최고 등급입니다', '#ff8a80');
-      const same = G.units.filter(o => o !== u && o.type.id === t.id);
-      if (same.length < 2) return this.toast(`같은 ${t.name} 3개가 필요합니다`, '#ff8a80');
+      const same = RD.canMerge(t) ? G.units.filter(o => o !== u && o.type.id === t.id) : [];
+      if (same.length < 2) {
+        const rc = this.readyRecipeFor(u);
+        if (rc) return this.craft(rc, u);
+        if (!RD.canMerge(t)) return this.toast(RD.recipesUsing(t).length ? '히든 레시피 재료가 부족합니다 (레시피 도감 참고)' : '더 이상 조합할 수 없습니다', '#ff8a80');
+        return this.toast(`같은 ${t.name} 3개가 필요합니다`, '#ff8a80');
+      }
       const { col, row } = u;
       this.removeUnit(u); this.removeUnit(same[0]); this.removeUnit(same[1]);
       const nt = pick(RD.combineTargets(t));
       const nu = this.addUnit(nt, col, row);
       G.selected = nu;
-      this.addFx({ k: 'combine', x: nu.x, y: nu.y, r: 92, color: gradeColorStr(nt.grade), life: 0.7 });
-      this.toast(`조합 성공!  [${RD.GRADES[nt.grade].name}] ${nt.name}`, RD.GRADES[nt.grade].color);
+      this.addFx({ k: 'combine', x: nu.x, y: nu.y, r: 92, color: RD.unitColorStr(nt), life: 0.7 });
+      this.toast(`조합 성공!  [${RD.GRADES[nt.grade].name}] ${nt.name}`, RD.unitTextColor(nt));
+      return nu;
+    }
+    canCombine(u) {
+      if (!u) return false;
+      return (RD.canMerge(u.type) && this.countType(u.type.id) >= 3) || !!this.readyRecipeFor(u);
+    }
+
+    // ── 히든 레시피 ──
+    // 레시피 재료를 필드에서 찾음 (prefer 유닛을 우선 사용) → 유닛 3개 배열 또는 null
+    recipeUnits(rc, prefer) {
+      const used = new Set(), out = [];
+      for (const id of rc.needs) {
+        let u = prefer && !used.has(prefer) && prefer.type.id === id ? prefer : null;
+        if (!u) u = this.G.units.find(o => o.type.id === id && !used.has(o));
+        if (!u) return null;
+        used.add(u); out.push(u);
+      }
+      return out;
+    }
+    readyRecipeFor(u) {
+      for (const rc of RD.recipesUsing(u.type)) if (this.recipeUnits(rc, u)) return rc;
+      return null;
+    }
+    craft(rc, prefer) {
+      const G = this.G, parts = this.recipeUnits(rc, prefer);
+      if (!parts) return this.toast('레시피 재료가 부족합니다', '#ff8a80');
+      const anchor = prefer && parts.includes(prefer) ? prefer : parts[0];
+      const { col, row } = anchor;
+      parts.forEach(p => this.removeUnit(p));
+      const nt = RD.UNIT_BY_ID[rc.out];
+      const first = !RD.Codex.made(nt.id);
+      RD.Codex.make(nt.id);
+      const nu = this.addUnit(nt, col, row);
+      G.selected = nu;
+      this.addFx({ k: 'combine', x: nu.x, y: nu.y, r: 130, color: 'rainbow', life: 1.0 });
+      this.addFx({ k: 'ring', x: nu.x, y: nu.y, r: 70, color: '#ffffff', life: 0.6 });
+      this.toast(`${first ? '히든 발견! ' : '히든 조합!  '}[${RD.unitLevelName(nt)}] ${nt.name}`, RD.HIDDEN_COLOR);
       return nu;
     }
     // 타입별 레벨 보유 수: { none:[n0], warrior:[n0,n1,n2,n3], ... }
+    //  히든 유닛은 out.hidden 에 따로 셈
     levelCounts() {
-      const out = {}, n = RD.GRADES.length;
+      const out = { hidden: 0 }, n = RD.GRADES.length;
       for (const k of RD.AUTO_KEYS) out[k] = new Array(n).fill(0);
-      for (const u of this.G.units) out[u.type.cat][u.type.grade]++;
+      for (const u of this.G.units) { if (u.type.hidden) out.hidden++; else out[u.type.cat][u.type.grade]++; }
       return out;
     }
     // 해당 타입에서 지금 조합 가능한 유닛 묶음 (낮은 레벨 우선) → 같은 유닛 배열 또는 null
     findMergeable(cat) {
-      const maxG = RD.GRADES.length - 1, groups = {};
+      const groups = {};
       for (const u of this.G.units) {
         const t = u.type;
-        if (t.cat !== cat || t.grade >= maxG) continue;
+        if (t.cat !== cat || !RD.canMerge(t)) continue;
         (groups[t.id] = groups[t.id] || []).push(u);
       }
       let best = null;
@@ -210,22 +264,46 @@ RD.GameLogic = (() => {
         this.removeUnit(g[0]); this.removeUnit(g[1]); this.removeUnit(g[2]);
         const nt = pick(RD.combineTargets(t));
         const nu = this.addUnit(nt, col, row);
-        this.addFx({ k: 'combine', x: nu.x, y: nu.y, r: 92, color: gradeColorStr(nt.grade), life: 0.7 });
+        this.addFx({ k: 'combine', x: nu.x, y: nu.y, r: 92, color: RD.unitColorStr(nt), life: 0.7 });
         made.push(nt);
       }
       const name = RD.AUTO_CATS[cat].name;
       if (!made.length) return this.toast(`${name}: 조합할 유닛이 없습니다`, '#ff8a80');
       G.selected = null;
       const top = made.reduce((a, b) => (b.grade > a.grade ? b : a));
-      this.toast(`${name} 자동 조합 ${made.length}회  ·  최고 [${RD.GRADES[top.grade].name}] ${top.name}`, RD.GRADES[top.grade].color);
+      this.toast(`${name} 자동 조합 ${made.length}회  ·  최고 [${RD.GRADES[top.grade].name}] ${top.name}`, RD.unitTextColor(top));
       return made;
     }
     sell(u) {
       if (!u) return this.toast('유닛을 먼저 선택하세요', '#ff8a80');
-      const g = RD.GRADES[u.type.grade].sell;
+      const g = RD.sellPrice(u.type);
       this.G.gold += g;
-      this.addFloat(u.x, u.y - 40, `+${g}`, '#ffd54f', 30);
+      this.addFloat(u.x, u.y - 40, `+${fmt(g)}`, '#ffd54f', 30);
       this.removeUnit(u);
+    }
+    // 타입 변경: Lv.2 이상 일반 유닛을 같은 레벨의 다른 타입 유닛으로 무작위 교체 (골드)
+    typeChange(u) {
+      if (!u) return this.toast('유닛을 먼저 선택하세요', '#ff8a80');
+      const t = u.type;
+      if (t.hidden) return this.toast('히든 유닛은 타입을 바꿀 수 없습니다', '#ff8a80');
+      if (!RD.canTypeChange(t)) return this.toast(`타입 변경은 ${RD.GRADES[RD.TYPE_CHANGE_MIN_GRADE].name} 이상부터 가능합니다`, '#ff8a80');
+      if (!this.spend(RD.COST_CURRENCY.typeChange, RD.typeChangeCost(t))) return;
+      const nt = pick(RD.typeChangeTargets(t));
+      const { col, row } = u;
+      this.removeUnit(u);
+      const nu = this.addUnit(nt, col, row);
+      nu.born = 0.5;
+      this.G.selected = nu;
+      this.addFx({ k: 'combine', x: nu.x, y: nu.y, r: 80, color: RD.CATEGORIES[nt.cat].color, life: 0.6 });
+      this.toast(`타입 변경!  ${t.name} → [${RD.CATEGORIES[nt.cat].name}] ${nt.name}`, RD.CATEGORIES[nt.cat].color);
+      return nu;
+    }
+    upgradeHidden() {
+      const G = this.G;
+      if (!G.hiddenUnlocked) return this.toast('히든 유닛을 얻으면 열립니다', '#ff8a80');
+      if (!this.spend(RD.COST_CURRENCY.hiddenUpgrade, RD.BAL.hiddenUpgradeCost(G.hiddenLv))) return;
+      G.hiddenLv++;
+      this.toast(`히든 강화 Lv.${G.hiddenLv}  (히든 유닛 공격력 ×${RD.util.fmt1(RD.BAL.hiddenMult(G.hiddenLv))})`, RD.HIDDEN_COLOR);
     }
     upgrade(cat) {
       const G = this.G, lv = G.upg[cat], cost = RD.BAL.upgradeCost(lv);
@@ -311,7 +389,7 @@ RD.GameLogic = (() => {
         case 'bullet': return '#ffee58';
         case 'arrow': return '#e6d8a8';
         case 'slash': return '#ffffff';
-        default: return RD.GRADES[t.grade].color;
+        default: return RD.unitTextColor(t);
       }
     }
     attack(u, e) {
@@ -321,11 +399,12 @@ RD.GameLogic = (() => {
       u.atk++;
       u.face = e.x < u.x - 4 ? -1 : e.x > u.x + 4 ? 1 : u.face || 1;
       // 레벨이 높을수록 공격 순간 섬광이 크고, Lv.3 은 적 위치에 충격파 추가
-      if (t.grade >= 1) this.addFx({ k: 'flash', x: u.x, y: u.y - 8, r: 12 + t.grade * 10, color: gradeColorStr(t.grade), life: 0.14 + t.grade * 0.04 });
-      if (t.grade >= 3) this.addFx({ k: 'ring', x: e.x, y: e.y, r: 34, color: gradeColorStr(t.grade), life: 0.3 });
+      const gk = Math.min(t.grade, 5), col = RD.unitColorStr(t);
+      if (t.grade >= 1) this.addFx({ k: 'flash', x: u.x, y: u.y - 8, r: 12 + gk * 10, color: col, life: 0.14 + gk * 0.04 });
+      if (t.grade >= 3) this.addFx({ k: 'ring', x: e.x, y: e.y, r: 34 + (gk - 3) * 10, color: col, life: 0.3 });
       if (RD.INSTANT_FX[t.fx]) {
-        if (t.fx === 'slash') this.addFx({ k: 'slash', x: e.x, y: e.y, a: rand(0, TAU), r: 28 + t.grade * 6, color: t.grade >= 3 ? RD.GRADES[t.grade].color : '#ffffff', life: 0.18 });
-        else if (t.fx === 'beam') this.addFx({ k: 'beam', x: u.x, y: u.y, x2: e.x, y2: e.y, w: 4 + t.grade * 2, color: t.pcolor || '#ffffff', life: 0.14 });
+        if (t.fx === 'slash') this.addFx({ k: 'slash', x: e.x, y: e.y, a: rand(0, TAU), r: 28 + gk * 6, color: t.grade >= 3 ? col : '#ffffff', life: 0.18 });
+        else if (t.fx === 'beam') this.addFx({ k: 'beam', x: u.x, y: u.y, x2: e.x, y2: e.y, w: 4 + gk * 2, color: t.pcolor || '#ffffff', life: 0.14 });
         else this.addFx({ k: 'lightning', pts: GameLogic.zigzag(u.x, u.y, e.x, e.y), color: t.pcolor || '#ffffff', life: 0.18 });
         this.hit(t, e.x, e.y, e, dmg);
       } else {

@@ -174,9 +174,9 @@ RD.Textures = (() => {
 
   // ── 등급 점만 (캐릭터 스프라이트 유닛 발밑) ──
   function makePips(scene, key, grade) {
-    canvasTex(scene, key, 64, 16, c => {
+    canvasTex(scene, key, 112, 16, c => {
       c.fillStyle = '#ffffff';
-      for (let i = 0; i < grade; i++) { c.beginPath(); c.arc(32 + (i - (grade - 1) / 2) * 13, 8, 4.4, 0, TAU); c.fill(); }
+      for (let i = 0; i < grade; i++) { c.beginPath(); c.arc(56 + (i - (grade - 1) / 2) * 12, 8, 4.4, 0, TAU); c.fill(); }
     });
   }
 
@@ -280,11 +280,16 @@ RD.Textures = (() => {
       g.fillStyle(0xffffff, 1); g.fillTriangle(16, 8.4, 23.2, 20.8, 8.8, 20.8);
     });
     // 유닛 머리 위 레벨 표시 (레벨 색 바탕 + 검은 글자)
-    RD.GRADES.forEach((gr, i) => canvasTex(scene, 'lvtag_' + i, 74, 38, c => {
-      rrect(c, 2, 2, 70, 34, 12); c.fillStyle = gr.color; c.fill();
+    //  히든 유닛(lvtagH_)은 무지개 그라데이션 바탕
+    const lvtag = (key, label, fill) => canvasTex(scene, key, 74, 38, c => {
+      rrect(c, 2, 2, 70, 34, 12);
+      if (fill) c.fillStyle = fill;
+      else { const g = c.createLinearGradient(2, 0, 72, 0); ['#ff6b6b', '#ffd93d', '#6bff95', '#4dd9ff', '#c86bff'].forEach((s, i) => g.addColorStop(i / 4, s)); c.fillStyle = g; }
+      c.fill();
       c.lineWidth = 3; c.strokeStyle = 'rgba(0,0,0,0.75)'; c.stroke();
-      c.font = `900 26px ${RD.FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#140c1c'; c.fillText(gr.name, 37, 21);
-    }));
+      c.font = `900 26px ${RD.FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#140c1c'; c.fillText(label, 37, 21);
+    });
+    RD.GRADES.forEach((gr, i) => { lvtag('lvtag_' + i, gr.name, gr.color); lvtag('lvtagH_' + i, gr.name, null); });
     canvasTex(scene, 'coin', 48, 48, c => {
       c.beginPath(); c.arc(24, 24, 20, 0, TAU); c.fillStyle = '#ffc107'; c.fill();
       c.lineWidth = 4; c.strokeStyle = '#8a5a00'; c.stroke();
@@ -310,6 +315,9 @@ RD.Textures = (() => {
     wizard:  ['#8c7bff', '#3b23a8', '#ffffff'],
     mine:  ['#4f8cff', '#1a3590', '#ffffff'],
     dark:  ['#3a3150', '#1d1729', '#ffffff'],
+    change: ['#26c6da', '#00606e', '#ffffff'],     // 타입 변경
+    book:  ['#7e57c2', '#311b92', '#ffffff'],      // 레시피 도감
+    hidden: ['#ff6bf0', '#6a1b9a', '#ffffff'],     // 히든 강화
   };
   function button(scene, scheme, w, h, enabled) {
     const key = `btn_${scheme}_${w}x${h}_${enabled ? 1 : 0}`;
@@ -348,7 +356,8 @@ RD.Textures = (() => {
       if (a.originY !== undefined) spr.setOrigin(0.5, a.originY);
       if (a.tint !== undefined) spr.setTint(a.tint);
       // 레벨 2 이상: 외곽 발광 (WebGL 전용 preFX)
-      if (t.grade >= 2 && spr.preFX) spr.preFX.addGlow(RD.util.gradeColorInt(t.grade), t.grade >= 3 ? 3 : 2, 0, false, 0.1, 8);
+      //  히든은 히든 색으로 더 강하게
+      if (t.grade >= 2 && spr.preFX) spr.preFX.addGlow(RD.util.colorInt(RD.unitTextColor(t)), t.hidden ? 4 : t.grade >= 3 ? 3 : 2, 0, false, 0.1, t.hidden ? 12 : 8);
       if (scene.anims.exists(key + '_idle')) spr.play({ key: key + '_idle', startFrame: Math.floor(Math.random() * 4) });
       spr.rdSprite = { key, attack: scene.anims.exists(key + '_attack') ? key + '_attack' : null, idle: scene.anims.exists(key + '_idle') ? key + '_idle' : null };
       return spr;

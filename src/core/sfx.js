@@ -110,7 +110,7 @@ RD.SFX = (() => {
       const sets = t.sfx ? [t.sfx, t.sfx] : FX[t.fx];
       if (!sets) return;
       // 레벨이 높을수록 조금 크게, Lv.3 은 간격 제한을 무시 (동시 재생 수 제한은 적용)
-      play(sets[t.grade >= 2 ? 1 : 0], 0.8 + 0.08 * t.grade, t.grade >= 3);
+      play(sets[t.grade >= 2 ? 1 : 0], 0.8 + 0.08 * Math.min(t.grade, 4), t.grade >= 3);
     },
     play,
     setMuted(m) { muted = !!m; if (bus) bus.gain.value = muted ? 0 : RD.SFX_VOLUME; },

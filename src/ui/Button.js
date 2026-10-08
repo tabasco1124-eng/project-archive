@@ -53,4 +53,13 @@ RD.UIButton = class UIButton {
     }
   }
   setDepth(d) { this.parts.forEach(p => p.setDepth(d)); return this; }
+  // 숨기면 터치도 받지 않음
+  setVisible(v) {
+    if (this.visible === v) return this;
+    this.visible = v;
+    this.parts.forEach(p => p.setVisible(v));
+    if (this.zone.input) this.zone.input.enabled = v;
+    if (!v) this.pressed = false;
+    return this;
+  }
 };

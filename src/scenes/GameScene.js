@@ -132,38 +132,39 @@ RD.GameScene = class GameScene extends Phaser.Scene {
     c.add(c.frameImg);
     c.badge = this.add.image(30, -30, 'badge').setVisible(false);
     c.add(c.badge);
-    c.lvTag = this.add.image(-22, -42, 'lvtag_' + t.grade);     // 레벨 표시 (왼쪽 위)
+    c.lvTag = this.add.image(-22, -42, (t.hidden ? 'lvtagH_' : 'lvtag_') + t.grade);     // 레벨 표시 (왼쪽 위, 히든은 무지개)
     c.add(c.lvTag);
-    c.grade = t.grade; c.lastAtk = 0;
+    c.grade = t.grade; c.colStr = RD.unitColorStr(t); c.lastAtk = 0;
     this.tintUnitView(c, time0());
     return c;
   }
   // ── 레벨별 이펙트 (캐릭터 스프라이트 유닛) ──
   //  Lv.0 그림자만 · Lv.1 바닥 링(타입 색) · Lv.2 육각 마법진 + 오라 + 떠오르는 빛 입자 + 외곽 발광
   //  Lv.3 이중 회전 마법진 + 빛기둥 + 큰 오라 + 궤도 입자 + 강한 발광 (발광은 Textures.unitBody)
+  //  Lv.4 이상은 마법진·오라가 조금씩 커지고, 히든은 마법진·오라·입자가 무지개로 계속 바뀜
   addLevelFx(c, t) {
-    const g = t.grade, ADD = Phaser.BlendModes.ADD;
-    const col = RD.util.gradeColorInt(g), catCol = RD.util.colorInt(RD.CATEGORIES[t.cat].color);
+    const g = Math.min(t.grade, 3), big = Math.max(0, t.grade - 3) * 0.06, ADD = Phaser.BlendModes.ADD;
+    const col = RD.util.colorInt(RD.unitColorStr(t)), catCol = RD.util.colorInt(RD.CATEGORIES[t.cat].color);
     c.shadowImg.setScale(1 + g * 0.12, 1);
     if (g < 1) return;
-    const fx = c.fx = { g, runes: [], sparks: [], orbit: [], seed: Math.random() * 1000 };
+    const fx = c.fx = { g, runes: [], sparks: [], orbit: [], seed: Math.random() * 1000, rainbow: !!t.hidden };
     const ground = this.add.container(0, 32).setScale(1, 0.4);     // 바닥 평면 (회전해도 눕혀 보이도록)
     c.add(ground);
     const r1 = this.add.image(0, 0, 'fx_rune' + Math.min(g, 3)).setBlendMode(ADD)
-      .setTint(g === 1 ? catCol : col).setAlpha(g === 1 ? 0.6 : 0.85).setScale([0, 0.44, 0.52, 0.6][g]);
+      .setTint(g === 1 ? catCol : col).setAlpha(g === 1 ? 0.6 : 0.85).setScale([0, 0.44, 0.52, 0.6][g] + big);
     ground.add(r1); fx.runes.push([r1, g === 1 ? 0.4 : 0.7]);
     if (g >= 3) {
-      const r2 = this.add.image(0, 0, 'fx_rune2').setBlendMode(ADD).setTint(catCol).setAlpha(0.7).setScale(0.82);
+      const r2 = this.add.image(0, 0, 'fx_rune2').setBlendMode(ADD).setTint(catCol).setAlpha(0.7).setScale(0.82 + big);
       ground.add(r2); fx.runes.push([r2, -0.45]);
       fx.pillar = this.add.image(0, 34, 'fx_pillar').setOrigin(0.5, 1).setBlendMode(ADD).setTint(col).setAlpha(0.2).setScale(1.1, 0.9);
       c.add(fx.pillar);
     }
     if (g >= 2) {
-      fx.aura = this.add.image(0, 0, 'fx_soft').setBlendMode(ADD).setTint(col).setAlpha(g >= 3 ? 0.32 : 0.25).setScale(g >= 3 ? 1.2 : 1);
+      fx.aura = this.add.image(0, 0, 'fx_soft').setBlendMode(ADD).setTint(col).setAlpha(g >= 3 ? 0.32 : 0.25).setScale((g >= 3 ? 1.2 : 1) + big * 2);
       c.add(fx.aura);
       // 떠오르는 입자 + (Lv.3) 궤도 입자 → 몸통 위에 그림
       c.fxTop = this.add.container(0, 0);
-      const n = g >= 3 ? 6 : 4;
+      const n = g >= 3 ? 6 + Math.min(4, t.grade - 3) : 4;
       for (let i = 0; i < n; i++) {
         const sp = this.add.image(0, 0, 'fx_spark').setBlendMode(ADD).setTint(i % 2 ? col : catCol);
         c.fxTop.add(sp); fx.sparks.push(sp);
@@ -181,6 +182,11 @@ RD.GameScene = class GameScene extends Phaser.Scene {
     for (const [r, spd] of fx.runes) r.rotation = s * spd + k;
     if (fx.aura) fx.aura.setAlpha((fx.g >= 3 ? 0.3 : 0.22) + Math.sin(s * 3 + k) * 0.07);
     if (fx.pillar) fx.pillar.setAlpha(0.15 + Math.sin(s * 2.2 + k) * 0.07);
+    if (fx.rainbow) {
+      const rc = RD.util.colorInt('rainbow');
+      fx.runes[0][0].setTint(rc); if (fx.aura) fx.aura.setTint(rc); if (fx.pillar) fx.pillar.setTint(rc);
+      fx.sparks.forEach((sp, i) => { if (i % 2) sp.setTint(rc); });
+    }
     const n = fx.sparks.length;
     fx.sparks.forEach((sp, i) => {
       const p = (s * (fx.g >= 3 ? 0.7 : 0.5) + i / n + k) % 1;
@@ -194,13 +200,16 @@ RD.GameScene = class GameScene extends Phaser.Scene {
     });
   }
   tintUnitView(c, time) {
-    const col = RD.util.gradeColorInt(c.grade);
+    const col = RD.util.colorInt(c.colStr);
     c.frameImg.setTint(col);
     if (c.halo) { c.halo.setTint(col); c.halo.setScale(1 + Math.sin(time / 200) * 0.03); }
   }
   syncUnits(time) {
-    const G = this.logic.G, counts = {};
+    const L = this.logic, G = L.G, counts = {};
     for (const u of G.units) counts[u.type.id] = (counts[u.type.id] || 0) + 1;
+    // 히든 레시피 재료가 다 모인 유닛도 조합 가능 표시
+    const ready = new Set();
+    for (const rc of RD.RECIPES) { const p = L.recipeUnits(rc); if (p) p.forEach(u => ready.add(u)); }
     const dragU = this.drag && this.drag.dragging ? this.drag.unit : null;
     for (const u of G.units) {
       let v = this.unitViews.get(u);
@@ -209,7 +218,7 @@ RD.GameScene = class GameScene extends Phaser.Scene {
       const pop = u.born < 1 ? 0.4 + 0.6 * u.born : 1;
       v.setScale(pop * (1 + 0.1 * u.anim));
       v.setAlpha(u === dragU ? 0.3 : 1);
-      v.badge.setVisible(u !== dragU && counts[u.type.id] >= 3 && u.type.grade < RD.GRADES.length - 1);
+      v.badge.setVisible(u !== dragU && ((counts[u.type.id] >= 3 && RD.canMerge(u.type)) || ready.has(u)));
       if (u.type.grade >= 3) this.tintUnitView(v, time);
       this.animLevelFx(v, time);
       if (v.body.rdSprite && u.face) v.body.setFlipX(u.face < 0);   // 공격한 적 쪽을 바라봄 (시트는 오른쪽 방향)
@@ -307,7 +316,7 @@ RD.GameScene = class GameScene extends Phaser.Scene {
     if (sel && !sel.removed) {
       const r = sel.type.range;
       g.fillStyle(0xffffff, 0.05).fillCircle(sel.x, sel.y, r);
-      g.lineStyle(3, RD.util.gradeColorInt(sel.type.grade), 1);
+      g.lineStyle(3, RD.util.colorInt(RD.unitColorStr(sel.type)), 1);
       const n = Math.max(12, Math.floor(Math.PI * 2 * r / 24));
       for (let i = 0; i < n; i++) { const a0 = i / n * Math.PI * 2; g.beginPath(); g.arc(sel.x, sel.y, r, a0, a0 + Math.PI / n); g.strokePath(); }
       for (const u of G.units) if (u.type.id === sel.type.id) {

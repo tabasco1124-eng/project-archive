@@ -70,8 +70,22 @@ RD.UNIT_CHARS = {
   // Lv.3 위저드
   meteor: ['u_wizard', 0xffb070], thunderlord: ['arcane', 0x8fb0ff], dronelord: ['caster', 0x40ffff],
   frostqueen: ['mage', 0xc8f4ff], necromancer: ['u_necromancer', 0xc898ff], voidlord: ['arcane'],
+  // Lv.4
+  warlord: ['darkknight', 0xff9a9a], bladestorm: ['u_berserker', 0xffb0d8], dragonknight: ['deathknight', 0xffb060],
+  stormarcher: ['camoarcher', 0x9ff0ff], railgunner: ['sniper', 0xff9fe0], mortar: ['shooter', 0xff9070],
+  archmage: ['arcane', 0xffe090], cryolord: ['wizard', 0x7fa8ff], stormlord: ['darklord', 0x9fb4ff],
+  // Lv.5
+  conqueror: ['deathlord', 0xffd070], swordgod: ['guard', 0xffc0f0], wyrmking: ['deathknight', 0xff7050],
+  skypiercer: ['longbow', 0xa0f0ff], orbitalcannon: ['sniper', 0xff7070], siegeking: ['brawler', 0xffe080],
+  sage: ['commander', 0xfff0c0], wintergod: ['mage', 0x90e0ff], thundergod: ['arcane', 0xc0d0ff],
+  // 히든
+  chronoknight: ['paladin', 0xc0a0ff], phoenixarcher: ['u_archer', 0xffa040], voidwalker: ['u_necromancer', 0x9070ff],
+  mechaseraph: ['caster', 0xfff0ff], ghostsniper: ['u_darkarcher', 0xd0ffff], titanmech: ['brute', 0xa0c0ff],
+  archangel: ['paladin', 0xfffff0], worldserpent: ['darkknight', 0x80ffa0], starcaller: ['longbow', 0xfff080],
+  nemesisbane: ['deathlord', 0xff80ff], archivist: ['u_wizard', 0x80ffff], eventhorizon: ['camoarcher', 0x8060ff],
+  genesis: ['arcane', 0xffffff],
 };
-RD.UNIT_SPRITE_H = [76, 84, 94, 108];   // 레벨별 표시 키(px, 필드 기준)
+RD.UNIT_SPRITE_H = [76, 84, 94, 108, 114, 120, 124, 128, 134];   // 레벨별 표시 키(px, 필드 기준)
 for (const id in RD.UNIT_CHARS) {
   const [sheet, tint] = RD.UNIT_CHARS[id], s = RD.SPRITE_SHEETS && RD.SPRITE_SHEETS[sheet];
   if (!s) continue;

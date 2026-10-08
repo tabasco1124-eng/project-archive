@@ -16,8 +16,8 @@ RD.GameOverScene = class GameOverScene extends Phaser.Scene {
     this.add.text(W / 2, 784, G.overReason, S(32, '#f0e6ff', 0, 'normal')).setOrigin(0.5);
     this.add.text(W / 2, 900, `도달 라운드  ${G.round}`, S(48, '#ffe082')).setOrigin(0.5);
     this.add.text(W / 2, 984, `처치 ${fmt(G.kills)}   ·   보유 유닛 ${G.units.length}`, S(34, '#c9bde0', 0, 'normal')).setOrigin(0.5);
-    const best = G.units.reduce((m, u) => Math.max(m, u.type.grade), -1);
-    if (best >= 0) this.add.text(W / 2, 1056, `최고 등급: ${RD.GRADES[best].name}`, S(34, RD.GRADES[best].color)).setOrigin(0.5);
+    const best = G.units.reduce((m, u) => (!m || u.type.grade > m.grade || (u.type.grade === m.grade && u.type.hidden) ? u.type : m), null);
+    if (best) this.add.text(W / 2, 1056, `최고 등급: ${RD.unitLevelName(best)}  ${best.name}`, S(34, RD.unitTextColor(best))).setOrigin(0.5);
 
     const restart = () => { if (!this.done) { this.done = true; this.scene.start('GameScene'); } };
     const btn = new RD.UIButton(this, RD.UI.btnRestart, { scheme: 'gold', labelSize: 52, onClick: restart });
