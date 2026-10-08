@@ -153,7 +153,7 @@ RD.TitleScene = class TitleScene extends Phaser.Scene {
     c.add(this.add.text(W / 2, 590, 'MISSION BRIEFING', S(24, '#ff2bd6', 0, 'normal')).setOrigin(0.5).setLetterSpacing(8));
     const lines = [
       ['소환', '적 처치로 얻은 골드로 인류의 유산을 무작위 소환'],
-      ['조합', '같은 유닛 3개 → 다음 레벨 유닛 (최대 Lv.5)'],
+      ['조합', '같은 유닛 3개 → 다음 레벨 (타입도 매번 무작위, 최대 Lv.5)'],
       ['히든', '정해진 재료 3개 → 히든 유닛 Lv.5~8 (레시피 도감)'],
       ['상성', '워리어→기동형 · 아처→장갑형 · 위저드→데이터형 강함'],
       ['강화', '광물로 타입 강화 · 골드로 채굴 강화'],

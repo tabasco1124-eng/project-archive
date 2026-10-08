@@ -3,14 +3,10 @@
  *   id, name(표시명), short(원 안 2글자), grade(레벨 0~8), cat(none|warrior|archer|wizard)
  *   dmg(기본 공격력), coef(타입 강화 1단계당 공격력 증가량 = dmg/5, Lv.0 은 0), spd(공격 간격 초), range(px), fx(공격 연출)
  *   조합 규칙 (일반 조합: 같은 유닛 3개)
- *     Lv.0 ×3 → 같은 line 의 Lv.1 중 랜덤 타입
- *     Lv.1 ×3 → 같은 타입의 Lv.2 중 랜덤
- *     Lv.2 ×3 → next 로 정해진 Lv.3 (고정 조합)
- *     Lv.3 ×3 → 같은 타입의 Lv.4 중 랜덤
- *     Lv.4 ×3 → next 로 정해진 Lv.5 (고정 조합). Lv.5 가 일반 유닛의 최고 레벨
+ *     LvN ×3 → Lv.N+1 중 무작위 (모든 레벨에서 타입도 무작위: 워리어/아처/위저드 각 1/3). Lv.5 가 일반 유닛의 최고 레벨
  *   히든 유닛 (hidden: true, Lv.5~8): RD.RECIPES 의 정해진 재료 3개로만 만든다 (아래 '히든 레시피')
  *     cat 은 주 타입(그 타입 강화 적용), 여기에 히든 강화 배율(RD.BAL.hiddenMult)이 추가로 곱해짐
- *   선택: sfx(공격 효과음 묶음 이름, 생략 시 fx 로 결정: src/core/sfx.js SETS), line(Lv.0/1 계열 번호), next(고정 조합 결과 id), splash(광역 반경), slow(감속 비율 0~1), slowDur, stun(기절 확률), stunDur
+ *   선택: sfx(공격 효과음 묶음 이름, 생략 시 fx 로 결정: src/core/sfx.js SETS), splash(광역 반경), slow(감속 비율 0~1), slowDur, stun(기절 확률), stunDur
  *         color(몸통색), pcolor(투사체/이펙트 색)
  *   fx: slash(근접, 즉시) | beam(레이저, 즉시) | lightning(번개, 즉시)
  *       arrow | bullet | orb | fire | holy | missile (투사체)
@@ -54,46 +50,46 @@ const SP = RD.ATK_SPEED;
 
 RD.UNITS = [
   // ── Lv.0 (타입 없음, 강화 영향 없음) ──
-  { id:'recruit',  name:'훈련병',     short:'훈련', grade:0, cat:'none', line:0, dmg:12, coef:0, spd:SP.느림,  range:180, fx:'slash',  color:'#8d6e63' },
-  { id:'militia',  name:'민병대',     short:'민병', grade:0, cat:'none', line:1, dmg:5,  coef:0, spd:SP.보통,  range:300, fx:'bullet', sfx:'sword', color:'#3949ab' },
-  { id:'wisp',     name:'꼬마정령',   short:'정령', grade:0, cat:'none', line:2, dmg:4,  coef:0, spd:SP.빠름,  range:260, fx:'orb',    color:'#5e35b1', pcolor:'#b388ff' },
+  { id:'recruit',  name:'훈련병',     short:'훈련', grade:0, cat:'none', dmg:12, coef:0, spd:SP.느림,  range:180, fx:'slash',  color:'#8d6e63' },
+  { id:'militia',  name:'민병대',     short:'민병', grade:0, cat:'none', dmg:5,  coef:0, spd:SP.보통,  range:300, fx:'bullet', sfx:'sword', color:'#3949ab' },
+  { id:'wisp',     name:'꼬마정령',   short:'정령', grade:0, cat:'none', dmg:4,  coef:0, spd:SP.빠름,  range:260, fx:'orb',    color:'#5e35b1', pcolor:'#b388ff' },
 
   // ── Lv.1 워리어 ──
-  { id:'knight',     name:'기사',     short:'기사', grade:1, cat:'warrior', line:0, dmg:50, coef:10, spd:SP.느림, range:190, fx:'slash', color:'#78909c' },
-  { id:'mercenary',  name:'용병',     short:'용병', grade:1, cat:'warrior', line:1, dmg:35, coef:7,  spd:SP.느림, range:190, fx:'slash', color:'#6d4c41' },
-  { id:'berserker',  name:'광전사',   short:'광전', grade:1, cat:'warrior', line:2, dmg:25, coef:5,  spd:SP.보통, range:190, fx:'slash', color:'#a1452b' },
+  { id:'knight',     name:'기사',     short:'기사', grade:1, cat:'warrior', dmg:50, coef:10, spd:SP.느림, range:190, fx:'slash', color:'#78909c' },
+  { id:'mercenary',  name:'용병',     short:'용병', grade:1, cat:'warrior', dmg:35, coef:7,  spd:SP.느림, range:190, fx:'slash', color:'#6d4c41' },
+  { id:'berserker',  name:'광전사',   short:'광전', grade:1, cat:'warrior', dmg:25, coef:5,  spd:SP.보통, range:190, fx:'slash', color:'#a1452b' },
   // ── Lv.1 아처 ──
-  { id:'archer',     name:'궁수',     short:'궁수', grade:1, cat:'archer', line:0, dmg:50, coef:10, spd:SP.느림, range:380, fx:'arrow',  color:'#5b7d2e' },
-  { id:'gunner',     name:'총잡이',   short:'총잡', grade:1, cat:'archer', line:1, dmg:20, coef:4,  spd:SP.보통, range:360, fx:'bullet', color:'#455a64' },
-  { id:'hunter',     name:'사냥꾼',   short:'사냥', grade:1, cat:'archer', line:2, dmg:20, coef:4,  spd:SP.보통, range:360, fx:'arrow',  color:'#7a8b3a' },
+  { id:'archer',     name:'궁수',     short:'궁수', grade:1, cat:'archer', dmg:50, coef:10, spd:SP.느림, range:380, fx:'arrow',  color:'#5b7d2e' },
+  { id:'gunner',     name:'총잡이',   short:'총잡', grade:1, cat:'archer', dmg:20, coef:4,  spd:SP.보통, range:360, fx:'bullet', color:'#455a64' },
+  { id:'hunter',     name:'사냥꾼',   short:'사냥', grade:1, cat:'archer', dmg:20, coef:4,  spd:SP.보통, range:360, fx:'arrow',  color:'#7a8b3a' },
   // ── Lv.1 위저드 ──
-  { id:'mage',       name:'마법사',   short:'마법', grade:1, cat:'wizard', line:0, dmg:20, coef:4,  spd:SP.보통, range:320, fx:'orb',  color:'#4527a0', pcolor:'#7c4dff' },
-  { id:'hacker',     name:'해커',     short:'해커', grade:1, cat:'wizard', line:1, dmg:10, coef:2,  spd:SP.빠름, range:320, fx:'beam', color:'#2e7d32', pcolor:'#69f0ae' },
-  { id:'shaman',     name:'주술사',   short:'주술', grade:1, cat:'wizard', line:2, dmg:25, coef:5,  spd:SP.느림, range:320, fx:'holy', color:'#00695c' },
+  { id:'mage',       name:'마법사',   short:'마법', grade:1, cat:'wizard', dmg:20, coef:4,  spd:SP.보통, range:320, fx:'orb',  color:'#4527a0', pcolor:'#7c4dff' },
+  { id:'hacker',     name:'해커',     short:'해커', grade:1, cat:'wizard', dmg:10, coef:2,  spd:SP.빠름, range:320, fx:'beam', color:'#2e7d32', pcolor:'#69f0ae' },
+  { id:'shaman',     name:'주술사',   short:'주술', grade:1, cat:'wizard', dmg:25, coef:5,  spd:SP.느림, range:320, fx:'holy', color:'#00695c' },
 
   // ── Lv.2 워리어 ──
-  { id:'assassin',   name:'암살자',   short:'암살', grade:2, cat:'warrior', next:'shadowlord', dmg:175, coef:35, spd:SP.느림,     range:210, fx:'slash', color:'#263238' },
-  { id:'templar',    name:'성전사',   short:'성전', grade:2, cat:'warrior', next:'archon',     dmg:75,  coef:15, spd:SP.보통,     range:210, fx:'slash', color:'#c79100' },
-  { id:'gladiator',  name:'검투사',   short:'검투', grade:2, cat:'warrior', next:'champion',   dmg:145, coef:29, spd:SP.느림,     range:210, fx:'slash', color:'#8d4a2f' },
-  { id:'flamer',     name:'화염전사', short:'화전', grade:2, cat:'warrior', next:'infernal',   dmg:50,  coef:10, spd:SP.보통,     range:210, fx:'fire',  color:'#d84315', splash:100 },
-  { id:'juggernaut', name:'거신병',   short:'거신', grade:2, cat:'warrior', next:'titan',      dmg:85,  coef:17, spd:SP.보통,     range:210, fx:'slash', color:'#5d6b74' },
-  { id:'duelist',    name:'쌍검사',   short:'쌍검', grade:2, cat:'warrior', next:'swordsaint', dmg:35,  coef:7,  spd:SP.매우빠름, range:210, fx:'slash', color:'#880e4f' },
+  { id:'assassin',   name:'암살자',   short:'암살', grade:2, cat:'warrior', dmg:175, coef:35, spd:SP.느림,     range:210, fx:'slash', color:'#263238' },
+  { id:'templar',    name:'성전사',   short:'성전', grade:2, cat:'warrior',     dmg:75,  coef:15, spd:SP.보통,     range:210, fx:'slash', color:'#c79100' },
+  { id:'gladiator',  name:'검투사',   short:'검투', grade:2, cat:'warrior',   dmg:145, coef:29, spd:SP.느림,     range:210, fx:'slash', color:'#8d4a2f' },
+  { id:'flamer',     name:'화염전사', short:'화전', grade:2, cat:'warrior',   dmg:50,  coef:10, spd:SP.보통,     range:210, fx:'fire',  color:'#d84315', splash:100 },
+  { id:'juggernaut', name:'거신병',   short:'거신', grade:2, cat:'warrior',      dmg:85,  coef:17, spd:SP.보통,     range:210, fx:'slash', color:'#5d6b74' },
+  { id:'duelist',    name:'쌍검사',   short:'쌍검', grade:2, cat:'warrior', dmg:35,  coef:7,  spd:SP.매우빠름, range:210, fx:'slash', color:'#880e4f' },
   // ── Lv.2 아처 ──
-  { id:'sniper',     name:'저격수',   short:'저격', grade:2, cat:'archer', next:'deadeye',    dmg:180, coef:36, spd:SP.느림, range:520, fx:'beam',    color:'#37474f', pcolor:'#fff59d' },
-  { id:'ranger',     name:'레인저',   short:'레인', grade:2, cat:'archer', next:'windranger', dmg:80,  coef:16, spd:SP.보통, range:400, fx:'arrow',   color:'#33691e' },
-  { id:'cannoneer',  name:'포병',     short:'포병', grade:2, cat:'archer', next:'artillery',  dmg:150, coef:30, spd:SP.느림, range:420, fx:'missile', color:'#546e7a' },
-  { id:'scout',      name:'정찰병',   short:'정찰', grade:2, cat:'archer', next:'gatling',    dmg:45,  coef:9,  spd:SP.빠름, range:380, fx:'bullet',  color:'#827717' },
-  { id:'crossbow',   name:'석궁병',   short:'석궁', grade:2, cat:'archer', next:'plaguebow',  dmg:40,  coef:8,  spd:SP.빠름, range:380, fx:'arrow',   color:'#6d5a3a' },
-  { id:'stalker',    name:'추적자',   short:'추적', grade:2, cat:'archer', next:'nightstalker', dmg:75, coef:15, spd:SP.보통, range:400, fx:'arrow', color:'#3e2723' },
+  { id:'sniper',     name:'저격수',   short:'저격', grade:2, cat:'archer',    dmg:180, coef:36, spd:SP.느림, range:520, fx:'beam',    color:'#37474f', pcolor:'#fff59d' },
+  { id:'ranger',     name:'레인저',   short:'레인', grade:2, cat:'archer', dmg:80,  coef:16, spd:SP.보통, range:400, fx:'arrow',   color:'#33691e' },
+  { id:'cannoneer',  name:'포병',     short:'포병', grade:2, cat:'archer',  dmg:150, coef:30, spd:SP.느림, range:420, fx:'missile', color:'#546e7a' },
+  { id:'scout',      name:'정찰병',   short:'정찰', grade:2, cat:'archer',    dmg:45,  coef:9,  spd:SP.빠름, range:380, fx:'bullet',  color:'#827717' },
+  { id:'crossbow',   name:'석궁병',   short:'석궁', grade:2, cat:'archer',  dmg:40,  coef:8,  spd:SP.빠름, range:380, fx:'arrow',   color:'#6d5a3a' },
+  { id:'stalker',    name:'추적자',   short:'추적', grade:2, cat:'archer', dmg:75, coef:15, spd:SP.보통, range:400, fx:'arrow', color:'#3e2723' },
   // ── Lv.2 위저드 ──
-  { id:'frostmage',  name:'빙결술사', short:'빙결', grade:2, cat:'wizard', next:'frostqueen',   dmg:75,  coef:15, spd:SP.보통, range:340, fx:'orb',       color:'#0277bd', pcolor:'#80d8ff' },
-  { id:'technomancer', name:'기계술사', short:'기계', grade:2, cat:'wizard', next:'dronelord', dmg:50,  coef:10, spd:SP.빠름, range:340, fx:'beam',      color:'#00838f', pcolor:'#18ffff' },
-  { id:'summoner',   name:'소환사',   short:'소환', grade:2, cat:'wizard', next:'necromancer',  dmg:45,  coef:9,  spd:SP.빠름, range:340, fx:'holy',      color:'#6a1b9a' },
-  { id:'warlock',    name:'흑마법사', short:'흑마', grade:2, cat:'wizard', next:'voidlord',     dmg:100, coef:20, spd:SP.느림, range:340, fx:'orb',       color:'#311b92', pcolor:'#ea80fc' },
-  { id:'pyromancer', name:'화염술사', short:'화염', grade:2, cat:'wizard', next:'meteor',       dmg:85,  coef:17, spd:SP.보통, range:340, fx:'fire',      color:'#bf360c' },
-  { id:'stormcaller',name:'뇌전술사', short:'뇌전', grade:2, cat:'wizard', next:'thunderlord',  dmg:45,  coef:9,  spd:SP.빠름, range:340, fx:'lightning', color:'#283593', pcolor:'#82b1ff' },
+  { id:'frostmage',  name:'빙결술사', short:'빙결', grade:2, cat:'wizard',   dmg:75,  coef:15, spd:SP.보통, range:340, fx:'orb',       color:'#0277bd', pcolor:'#80d8ff' },
+  { id:'technomancer', name:'기계술사', short:'기계', grade:2, cat:'wizard', dmg:50,  coef:10, spd:SP.빠름, range:340, fx:'beam',      color:'#00838f', pcolor:'#18ffff' },
+  { id:'summoner',   name:'소환사',   short:'소환', grade:2, cat:'wizard',  dmg:45,  coef:9,  spd:SP.빠름, range:340, fx:'holy',      color:'#6a1b9a' },
+  { id:'warlock',    name:'흑마법사', short:'흑마', grade:2, cat:'wizard',     dmg:100, coef:20, spd:SP.느림, range:340, fx:'orb',       color:'#311b92', pcolor:'#ea80fc' },
+  { id:'pyromancer', name:'화염술사', short:'화염', grade:2, cat:'wizard',       dmg:85,  coef:17, spd:SP.보통, range:340, fx:'fire',      color:'#bf360c' },
+  { id:'stormcaller',name:'뇌전술사', short:'뇌전', grade:2, cat:'wizard',  dmg:45,  coef:9,  spd:SP.빠름, range:340, fx:'lightning', color:'#283593', pcolor:'#82b1ff' },
 
-  // ── Lv.3 워리어 (Lv.2 ×3 고정 조합) ──
+  // ── Lv.3 워리어 ──
   { id:'shadowlord', name:'그림자군주', short:'그림', grade:3, cat:'warrior', dmg:900,  coef:180, spd:SP.느림, range:230, fx:'slash', color:'#1a1a2e' },
   { id:'archon',     name:'대성전사',   short:'대성', grade:3, cat:'warrior', dmg:600,  coef:120, spd:SP.느림, range:230, fx:'holy',  color:'#fff3c4', splash:150 },
   { id:'infernal',   name:'업화기사',   short:'업화', grade:3, cat:'warrior', dmg:250,  coef:50,  spd:SP.보통, range:230, fx:'fire',  color:'#b71c1c', splash:120 },
@@ -115,17 +111,17 @@ RD.UNITS = [
   { id:'necromancer',name:'사령술사',   short:'사령', grade:3, cat:'wizard', dmg:250,  coef:50,  spd:SP.보통,     range:380, fx:'holy',      color:'#4a148c' },
   { id:'voidlord',   name:'공허군주',   short:'공허', grade:3, cat:'wizard', dmg:1300, coef:260, spd:SP.매우느림, range:400, fx:'orb',       color:'#12005e', pcolor:'#ea80fc' },
 
-  // ── Lv.4 (Lv.3 ×3 → 같은 타입 Lv.4 중 랜덤) ──
-  { id:'warlord',     name:'전쟁군주',   short:'전쟁', grade:4, cat:'warrior', next:'conqueror',     dmg:3000, coef:600, spd:SP.느림,     range:240, fx:'slash',     color:'#7f1d1d' },
-  { id:'bladestorm',  name:'칼바람검객', short:'칼바', grade:4, cat:'warrior', next:'swordgod',      dmg:700,  coef:140, spd:SP.매우빠름, range:240, fx:'slash',     color:'#ad1457', splash:90 },
-  { id:'dragonknight',name:'용기사',     short:'용기', grade:4, cat:'warrior', next:'wyrmking',      dmg:1400, coef:280, spd:SP.보통,     range:240, fx:'fire',      color:'#e65100', splash:150 },
-  { id:'stormarcher', name:'폭풍궁수',   short:'폭궁', grade:4, cat:'archer',  next:'skypiercer',    dmg:1200, coef:240, spd:SP.빠름,     range:460, fx:'arrow',     color:'#00838f' },
-  { id:'railgunner',  name:'레일건사수', short:'레일', grade:4, cat:'archer',  next:'orbitalcannon', dmg:3000, coef:600, spd:SP.느림,     range:600, fx:'beam',      color:'#880e4f', pcolor:'#ff80ab' },
-  { id:'mortar',      name:'박격포대',   short:'박격', grade:4, cat:'archer',  next:'siegeking',     dmg:2000, coef:400, spd:SP.느림,     range:500, fx:'missile',   color:'#4e342e', splash:170 },
-  { id:'archmage',    name:'대마도사',   short:'대마', grade:4, cat:'wizard',  next:'sage',          dmg:1800, coef:360, spd:SP.보통,     range:400, fx:'orb',       color:'#f9a825', pcolor:'#ffe57f', splash:100 },
-  { id:'cryolord',    name:'혹한군주',   short:'혹한', grade:4, cat:'wizard',  next:'wintergod',     dmg:1300, coef:260, spd:SP.보통,     range:400, fx:'orb',       color:'#1565c0', pcolor:'#b3e5fc', slow:0.45, slowDur:2 },
-  { id:'stormlord',   name:'폭풍군주',   short:'폭군', grade:4, cat:'wizard',  next:'thundergod',    dmg:1100, coef:220, spd:SP.빠름,     range:400, fx:'lightning', color:'#283593', pcolor:'#8c9eff' },
-  // ── Lv.5 (Lv.4 ×3 고정 조합, 일반 유닛 최고 레벨) ──
+  // ── Lv.4 ──
+  { id:'warlord',     name:'전쟁군주',   short:'전쟁', grade:4, cat:'warrior',     dmg:3000, coef:600, spd:SP.느림,     range:240, fx:'slash',     color:'#7f1d1d' },
+  { id:'bladestorm',  name:'칼바람검객', short:'칼바', grade:4, cat:'warrior',      dmg:700,  coef:140, spd:SP.매우빠름, range:240, fx:'slash',     color:'#ad1457', splash:90 },
+  { id:'dragonknight',name:'용기사',     short:'용기', grade:4, cat:'warrior',      dmg:1400, coef:280, spd:SP.보통,     range:240, fx:'fire',      color:'#e65100', splash:150 },
+  { id:'stormarcher', name:'폭풍궁수',   short:'폭궁', grade:4, cat:'archer',     dmg:1200, coef:240, spd:SP.빠름,     range:460, fx:'arrow',     color:'#00838f' },
+  { id:'railgunner',  name:'레일건사수', short:'레일', grade:4, cat:'archer',  dmg:3000, coef:600, spd:SP.느림,     range:600, fx:'beam',      color:'#880e4f', pcolor:'#ff80ab' },
+  { id:'mortar',      name:'박격포대',   short:'박격', grade:4, cat:'archer',      dmg:2000, coef:400, spd:SP.느림,     range:500, fx:'missile',   color:'#4e342e', splash:170 },
+  { id:'archmage',    name:'대마도사',   short:'대마', grade:4, cat:'wizard',           dmg:1800, coef:360, spd:SP.보통,     range:400, fx:'orb',       color:'#f9a825', pcolor:'#ffe57f', splash:100 },
+  { id:'cryolord',    name:'혹한군주',   short:'혹한', grade:4, cat:'wizard',      dmg:1300, coef:260, spd:SP.보통,     range:400, fx:'orb',       color:'#1565c0', pcolor:'#b3e5fc', slow:0.45, slowDur:2 },
+  { id:'stormlord',   name:'폭풍군주',   short:'폭군', grade:4, cat:'wizard',     dmg:1100, coef:220, spd:SP.빠름,     range:400, fx:'lightning', color:'#283593', pcolor:'#8c9eff' },
+  // ── Lv.5 (일반 유닛 최고 레벨) ──
   { id:'conqueror',   name:'정복왕', short:'정복', grade:5, cat:'warrior', dmg:10500, coef:2100, spd:SP.느림,     range:250, fx:'slash',     color:'#b71c1c', stun:0.15, stunDur:0.6 },
   { id:'swordgod',    name:'검신',   short:'검신', grade:5, cat:'warrior', dmg:2400,  coef:480,  spd:SP.매우빠름, range:250, fx:'slash',     color:'#f8bbd0', splash:110 },
   { id:'wyrmking',    name:'용왕',   short:'용왕', grade:5, cat:'warrior', dmg:5000,  coef:1000, spd:SP.보통,     range:250, fx:'fire',      color:'#ff3d00', splash:180 },
@@ -194,7 +190,13 @@ RD.sellPrice = t => Math.max(10, Math.floor(RD.unitValue(t) * RD.CONFIG.summonCo
 // 타입 변경 비용 = 판매가의 절반 (판매 후 다시 뽑는 것보다 항상 쌈), 10 단위 올림
 RD.typeChangeCost = t => Math.ceil(RD.sellPrice(t) * 0.5 / 10) * 10;
 RD.canTypeChange = t => !t.hidden && t.grade >= RD.TYPE_CHANGE_MIN_GRADE;
-RD.typeChangeTargets = t => (RD.UNITS_BY_GRADE[t.grade] || []).filter(u => u.cat !== t.cat);
+// 타입 변경: 같은 레벨에서 타입을 1/3 씩 무작위로 고른 뒤 그 타입의 유닛 중 무작위 (지금과 똑같은 유닛만 제외)
+RD.typeChangeTargets = t => (RD.UNITS_BY_GRADE[t.grade] || []).filter(u => u.id !== t.id);
+RD.pickTypeChange = t => {
+  const cat = RD.CAT_KEYS[Math.floor(Math.random() * RD.CAT_KEYS.length)];
+  const c = RD.typeChangeTargets(t).filter(u => u.cat === cat);
+  return c[Math.floor(Math.random() * c.length)];
+};
 // 같은 유닛 3개로 일반 조합이 가능한 유닛인지
 RD.canMerge = t => !t.hidden && t.grade < RD.MAX_NORMAL_GRADE;
 // 표시 색: 히든은 무지개(글자 등 고정 색은 HIDDEN_COLOR), 그 외는 레벨 색
@@ -223,9 +225,5 @@ RD.Codex = (() => {
 })();
 
 // 조합 결과 후보 (logic.combine 에서 사용)
-RD.combineTargets = t => {
-  if (t.next) return [RD.UNIT_BY_ID[t.next]];
-  const up = RD.UNITS_BY_GRADE[t.grade + 1] || [];
-  if (t.grade === 0) return up.filter(u => u.line === t.line);
-  return up.filter(u => u.cat === t.cat);
-};
+//  모든 레벨에서 결과 타입은 무작위 (레벨마다 타입별 유닛 수가 같으므로 워리어/아처/위저드 각 1/3)
+RD.combineTargets = t => RD.UNITS_BY_GRADE[t.grade + 1] || [];

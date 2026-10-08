@@ -290,14 +290,14 @@ RD.GameLogic = (() => {
       this.addFloat(u.x, u.y - 40, `+${fmt(g)}`, '#ffd54f', 30);
       this.removeUnit(u);
     }
-    // 타입 변경: Lv.2 이상 일반 유닛을 같은 레벨의 다른 타입 유닛으로 무작위 교체 (골드)
+    // 타입 변경: Lv.2 이상 일반 유닛을 같은 레벨의 무작위 유닛으로 교체 (타입 1/3 씩, 똑같은 유닛만 제외, 골드)
     typeChange(u) {
       if (!u) return this.toast('유닛을 먼저 선택하세요', '#ff8a80');
       const t = u.type;
       if (t.hidden) return this.toast('히든 유닛은 타입을 바꿀 수 없습니다', '#ff8a80');
       if (!RD.canTypeChange(t)) return this.toast(`타입 변경은 ${RD.GRADES[RD.TYPE_CHANGE_MIN_GRADE].name} 이상부터 가능합니다`, '#ff8a80');
       if (!this.spend(RD.COST_CURRENCY.typeChange, RD.typeChangeCost(t))) return;
-      const nt = pick(RD.typeChangeTargets(t));
+      const nt = RD.pickTypeChange(t);
       const { col, row } = u;
       this.removeUnit(u);
       const nu = this.addUnit(nt, col, row);
