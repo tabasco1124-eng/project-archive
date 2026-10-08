@@ -22,13 +22,16 @@ RD.CONFIG = {
   maxFloats: 70,
 };
 
-// 배경 음악: 라운드(스테이지) 구간별 트랙. 구간 밖(46 라운드~)은 음악 없음 (추후 추가 예정)
+// 배경 음악: 라운드(스테이지) 구간별 트랙. 구간 밖(91 라운드~)은 음악 없음
 //  라운드 0(시작 대기)은 첫 구간 음악을 사용. base 는 build.js 가 dist 용으로 '../' 를 붙임
 RD.BGM_BASE = RD.BGM_BASE || '';
 RD.BGM_TRACKS = [
   { from: 1,  to: 15, url: 'assets/audio/bgm1_neon_velocity.mp3' },
   { from: 16, to: 30, url: 'assets/audio/bgm2_neon_velocity2.mp3' },
   { from: 31, to: 45, url: 'assets/audio/bgm3_last_hope.mp3' },
+  { from: 46, to: 60, url: 'assets/audio/bgm4_last_hope4.mp3' },
+  { from: 61, to: 75, url: 'assets/audio/bgm5_neon_game_loop5.mp3' },
+  { from: 76, to: 90, url: 'assets/audio/bgm6_neon_game_loop6.mp3' },
 ];
 RD.BGM_VOLUME = 0.5;
 // 공격 효과음 전체 볼륨 (Web Audio, 0~1). 배경 음악이 잘 들리도록 낮게 유지
