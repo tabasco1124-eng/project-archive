@@ -24,6 +24,7 @@ RD.Neon = (() => {
     const draw = () => {
       g.clear();
       const off = pressed ? 4 : 0, c = enabled ? col : 0x4d5b78;
+      if (opts.backing) g.fillStyle(0x07060f, 0.88).fillRect(r.x, r.y + off, r.w, r.h);   // 배경 그리드 위에서 글자가 잘 보이게
       g.fillStyle(c, pressed ? 0.35 : hover ? 0.22 : 0.12).fillRect(r.x, r.y + off, r.w, r.h);
       g.lineStyle(10, c, enabled ? 0.18 : 0.08).strokeRect(r.x - 4, r.y - 4 + off, r.w + 8, r.h + 8);
       g.lineStyle(4, c, 1).strokeRect(r.x, r.y + off, r.w, r.h);
@@ -124,3 +125,30 @@ RD.Neon = (() => {
 
   return { button, background, header, toast, hexStr };
 })();
+
+/* 백업 코드 UI (타이틀 메뉴 · 로비 [백업] 공용). 저장 형식은 RD.Save.exportString / importString
+ *  copy: 클립보드에 복사 (막히면 코드가 적힌 입력창을 띄워 직접 복사)
+ *  load: 코드 입력 → 덮어쓰기 확인 → 복원. 성공하면 true (실패 사유는 toast) */
+RD.BackupUI = {
+  copy(scene, y) {
+    const code = RD.Save.exportString();
+    const fallback = () => window.prompt('아래 코드를 전체 선택해 복사하세요', code);
+    const ok = () => RD.Neon.toast(scene, '복사 완료! 메모장 등에 붙여넣어 보관하세요', '#7dffb0', y);
+    try {
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(code).then(ok, fallback);
+      else fallback();
+    } catch (e) { fallback(); }
+  },
+  load(scene, y, skipConfirm) {
+    const code = window.prompt('게임 코드를 붙여넣으세요 (PA1- 로 시작)');
+    if (!code) return false;
+    if (!skipConfirm && !window.confirm('지금 데이터를 코드의 데이터로 덮어씁니다. 계속할까요?')) return false;
+    try { RD.Save.importString(code); } catch (e) { RD.Neon.toast(scene, `불러오기 실패: ${e.message}`, '#ff8a80', y); return false; }
+    return true;
+  },
+  // 진행한 기록이 있는지 (새 게임 시 덮어쓰기 경고용)
+  hasProgress() {
+    const d = RD.Save.data;
+    return d.stats.runs > 0 || d.meta.opened > 0 || d.meta.fragments > 0 || d.codex.seen.length > 0;
+  },
+};

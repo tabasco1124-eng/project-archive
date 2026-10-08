@@ -235,26 +235,10 @@ RD.LobbyScene = class LobbyScene extends Phaser.Scene {
     this.modal = c;
   }
 
-  copyBackup() {
-    const code = RD.Save.exportString();
-    const fallback = () => window.prompt('아래 코드를 전체 선택해 복사하세요', code);
-    const ok = () => RD.Neon.toast(this, '복사 완료! 메모장 등에 붙여넣어 보관하세요', '#7dffb0', 1460);
-    try {
-      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(code).then(ok, fallback);
-      else fallback();
-    } catch (e) { fallback(); }
-  }
+  copyBackup() { RD.BackupUI.copy(this, 1460); }
 
   importBackup() {
-    const code = window.prompt('백업 코드를 붙여넣으세요 (PA1- 로 시작)');
-    if (!code) return;
-    if (!window.confirm('지금 데이터를 백업 코드의 데이터로 덮어씁니다. 계속할까요?')) return;
-    try {
-      RD.Save.importString(code);
-    } catch (e) {
-      RD.Neon.toast(this, `불러오기 실패: ${e.message}`, '#ff8a80', 1460);
-      return;
-    }
+    if (!RD.BackupUI.load(this, 1460)) return;
     this.scene.restart();
     this.events.once('create', () => RD.Neon.toast(this, '백업 코드로 복원했습니다', '#7dffb0', 1460));
   }

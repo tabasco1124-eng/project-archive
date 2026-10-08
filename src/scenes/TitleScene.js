@@ -4,7 +4,8 @@
  *   y 120        상단 링크 상태 바
  *   y 440~790    타이틀 / 서브타이틀 / 세계관 한 줄
  *   y 1060       사각 결계 엠블럼 (회전)
- *   y 1400       '화면을 터치하여 접속' (깜빡임)
+ *   y 1400       '화면을 터치하여 접속' (깜빡임) → 터치하면 접속 메뉴로 바뀜
+ *   y 1210~1670  접속 메뉴 (600x100, 간격 120): [이어하기](기록 있을 때) [새 게임] [게임 코드 발급] [게임 불러오기]
  *   y 1720       시스템 메시지 티커
  *   y 1860       하단 버전 표기
  */
@@ -42,8 +43,9 @@ RD.TitleScene = class TitleScene extends Phaser.Scene {
     this.add.text(W / 2, 1060, 'NX', S(44, '#00e5ff')).setOrigin(0.5).setShadow(0, 0, '#00e5ff', 16, false, true);
 
     // ── 접속 안내 ──
+    this.touchTexts = [];
     this.touch = this.add.text(W / 2, 1400, '화면을 터치하여 접속', S(48, '#ffffff')).setOrigin(0.5).setShadow(0, 0, '#00e5ff', 18, false, true);
-    this.add.text(W / 2, 1462, 'TOUCH TO CONNECT', S(24, '#00e5ff', 0, 'normal')).setOrigin(0.5).setLetterSpacing(10);
+    this.touchTexts.push(this.touch, this.add.text(W / 2, 1462, 'TOUCH TO CONNECT', S(24, '#00e5ff', 0, 'normal')).setOrigin(0.5).setLetterSpacing(10));
     this.tweens.add({ targets: this.touch, alpha: 0.35, duration: 800, yoyo: true, repeat: -1 });
 
     // ── 시스템 메시지 티커 ──
@@ -62,9 +64,13 @@ RD.TitleScene = class TitleScene extends Phaser.Scene {
 
     this.add.text(W / 2, 1860, 'v0.2  ·  RANDOM DEFENSE  ·  PROJECT ARCHIVE', S(22, '#4d5b78', 0, 'normal')).setOrigin(0.5);
 
-    // 아무 곳이나 터치 / Enter / Space → 로비
-    this.input.once('pointerup', () => this.connect());
-    if (this.input.keyboard) this.input.keyboard.on('keydown', e => { if (e.key === 'Enter' || e.key === ' ') this.connect(); });
+    // 아무 곳이나 터치 → 접속 메뉴 / Enter·Space → 메뉴, 메뉴에서 한 번 더 → 이어하기(또는 새 게임)
+    this.menu = null;
+    this.input.once('pointerup', () => this.showMenu());
+    if (this.input.keyboard) this.input.keyboard.on('keydown', e => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      if (!this.menu) this.showMenu(); else this.connect();
+    });
 
     this.time.addEvent({ delay: 2600, loop: true, callback: () => this.glitch() });
     this.cameras.main.fadeIn(400, 5, 4, 9);
@@ -87,6 +93,38 @@ RD.TitleScene = class TitleScene extends Phaser.Scene {
     this.titleC.x = RD.W / 2 - dx; this.titleM.x = RD.W / 2 + dx;
     this.title.x = RD.W / 2 + Phaser.Math.Between(-4, 4);
     this.time.delayedCall(90, () => { this.titleC.x = RD.W / 2 - 3; this.titleM.x = RD.W / 2 + 3; this.title.x = RD.W / 2; });
+  }
+
+  // 접속 메뉴: 이어하기 / 새 게임 / 게임 코드 발급 / 게임 불러오기
+  showMenu() {
+    if (this.menu) return;
+    this.touchTexts.forEach(t => { this.tweens.killTweensOf(t); t.destroy(); });
+    const has = RD.BackupUI.hasProgress(), items = [];
+    if (has) items.push(['이어하기', 0x00e5ff, () => this.connect()]);
+    items.push(['새 게임', has ? 0x7c4dff : 0x00e5ff, () => this.newGame()]);
+    items.push(['게임 코드 발급', 0x7dffb0, () => RD.BackupUI.copy(this, 1160)]);
+    items.push(['게임 불러오기', 0xffc935, () => this.loadGame()]);
+    const y0 = has ? 1210 : 1270;
+    this.menu = items.map(([label, col, fn], i) => {
+      const b = RD.Neon.button(this, { x: 240, y: y0 + i * 120, w: 600, h: 100 }, label, '', col, fn, { size: 40, backing: true });
+      b.parts.forEach(p => { p.setAlpha(0); this.tweens.add({ targets: p, alpha: 1, duration: 200, delay: i * 60 }); });
+      return b;
+    });
+    this.ticker.setText('> 접속 방식을 선택하십시오');
+  }
+
+  newGame() {
+    if (RD.BackupUI.hasProgress() && !window.confirm('새 게임을 시작하면 지금 기록(기억 파편 · 히로인 카드 · 업적)이 모두 지워집니다.\n먼저 [게임 코드 발급]으로 백업해 두는 것을 권장합니다.\n\n정말 새로 시작할까요?')) return;
+    const diff = RD.Difficulty.get();
+    RD.Save.reset();
+    RD.Difficulty.set(diff);
+    this.connect();
+  }
+
+  loadGame() {
+    if (!RD.BackupUI.load(this, 1160, !RD.BackupUI.hasProgress())) return;
+    RD.Neon.toast(this, '기록을 불러왔습니다', '#7dffb0', 1160);
+    this.time.delayedCall(500, () => this.connect());
   }
 
   connect() {
