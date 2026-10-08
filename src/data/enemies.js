@@ -42,6 +42,18 @@ RD.ENEMIES = [
   { id:'wisp',    name:'불꽃정령', shape:'diamond',  color:'#ff7043', size:24, hp:1.0,  spd:1.1  },
 ];
 
+/* ── 이벤트 몬스터: 패킷 ──
+ *  every 라운드마다(50, 100, 150 …) 그 라운드 웨이브와 함께 등장. 제한 시간 안에 처치하면 히든 유닛 지급
+ *  - 적 수(패배 기준)에 안 들어가고, 못 잡아도 사라질 뿐 게임은 계속됨 ("패킷 전송 실패")
+ *  - 타입 없음(모든 유닛 ×1.0), 감속·기절은 보스처럼 절반
+ *  - 보상: 처치 순서대로 히든 Lv.5 → Lv.6 → Lv.7 (이후 계속 Lv.7), 그 레벨의 히든 유닛 중 무작위 + 골드
+ *  - 체력 = 그 라운드 적 체력 × hpMul × 난이도 배율 (tools/balance_sim.js 로 처치율 검증) */
+RD.PACKET = {
+  every: 50, timeLimit: 300, hpMul: 40, speedMul: 1.7, rewardGrades: [5, 6, 7],
+  goldMul: 3,   // 처치 골드 = 보스 골드 × goldMul
+  type: { id: 'packet', name: '패킷', shape: 'hex', color: '#ff2bd6', size: 46 },
+};
+
 RD.BOSSES = [
   { id:'ogre',      name:'오우거 족장', shape:'circle',   color:'#a1887f', size:48 },
   { id:'titan',     name:'기계 거신',   shape:'hex',      color:'#607d8b', size:48 },

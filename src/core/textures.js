@@ -340,6 +340,7 @@ RD.Textures = (() => {
     makeAuraFx(scene);
     for (const e of RD.ENEMIES) makeEnemy(scene, e, false);
     for (const b of RD.BOSSES) makeEnemy(scene, b, true);
+    makeEnemy(scene, RD.PACKET.type, true);
     makeProjectiles(scene);
     makeMisc(scene);
   }

@@ -103,6 +103,7 @@ RD.GameScene = class GameScene extends Phaser.Scene {
   update(time, delta) {
     const dt = Math.min(0.05, delta / 1000), L = this.logic, G = L.G;
     if (G.mode === 'playing') for (let i = 0; i < G.speed && G.mode === 'playing'; i++) L.update(dt);
+    if (L.shakeReq) { L.shakeReq = 0; this.cameras.main.shake(600, 0.012); }   // 패킷 등장·처치 흔들림
     // 배경 음악: 라운드 구간별 트랙, 일시정지/게임 오버 시 멈춤
     if (G.mode === 'over') RD.BGM.stop();
     else { RD.BGM.setRound(G.round); RD.BGM.setPaused(G.mode === 'paused'); }
@@ -265,7 +266,17 @@ RD.GameScene = class GameScene extends Phaser.Scene {
     const G = this.logic.G;
     for (const e of G.enemies) {
       let v = this.enemyViews.get(e);
-      if (!v) { v = RD.Textures.enemySprite(this, e.type).setDepth(e.boss ? 2.5 : 2); this.enemyViews.set(e, v); v.prevX = e.x; }
+      if (!v) { v = RD.Textures.enemySprite(this, e.type).setDepth(e.boss || e.packet ? 2.5 : 2); this.enemyViews.set(e, v); v.prevX = e.x; }
+      if (e.packet) {   // 뒤틀린 색: 색조·크기·위치를 매 프레임 흔듦 (가벼운 tint 만 사용, postFX 없음)
+        const k = time / 1000;
+        v.setTint(RD.util.hsvToInt((k * 0.9) % 1, 0.9, 1), RD.util.hsvToInt((k * 0.9 + 0.33) % 1, 0.9, 1),
+          RD.util.hsvToInt((k * 0.9 + 0.66) % 1, 0.9, 1), RD.util.hsvToInt((k * 0.9 + 0.5) % 1, 0.9, 1));
+        v.setScale(1.6 + Math.sin(k * 11) * 0.12, 1.6 + Math.cos(k * 7) * 0.12).setAngle(Math.sin(k * 5) * 12);
+        const glitch = Math.random() < 0.12 ? RD.util.rand(-10, 10) : 0;
+        v.setPosition(e.x + glitch, e.y);
+        if (e.hitT > 0) v.setAlpha(0.6); else v.setAlpha(1);
+        continue;
+      }
       const bob = e.stunT > 0 ? 0 : Math.sin(time / 120 + e.wob) * 2.4;
       if (v.rdSprite) { const dx = e.x - v.prevX; if (dx < -0.02) v.setFlipX(true); else if (dx > 0.02) v.setFlipX(false); }
       v.prevX = e.x;
@@ -356,6 +367,14 @@ RD.GameScene = class GameScene extends Phaser.Scene {
     for (const e of G.enemies) {
       const s = e.size;
       if (e.slowT > 0) g.lineStyle(4, 0x64c8ff, 0.8).strokeCircle(e.x, e.y, s + 6);
+      if (e.packet) {   // 패킷: 무지개 링 + 큰 체력바
+        const rc = cInt('rainbow');
+        g.lineStyle(6, rc, 0.9).strokeEllipse(e.x, e.y + s * 1.3, s * 3.4, s * 1.2);
+        const bw = 150, bx = e.x - bw / 2, by = e.y - s * 1.6 - 30;
+        g.fillStyle(0x000000, 0.75).fillRect(bx - 2, by - 2, bw + 4, 16);
+        g.fillStyle(rc, 1).fillRect(bx, by, bw * clamp(e.hp / e.maxHp, 0, 1), 12);
+        continue;
+      }
       // 적 타입 표시: 발밑 색 링 + 머리 위 작은 마름모 (장갑 주황 · 기동 노랑 · 데이터 하늘)
       const tc = cInt(RD.ENEMY_TYPES[e.etype].color), my = e.y - s - (e.boss ? 44 : 30);
       g.lineStyle(e.boss ? 5 : 3, tc, 0.85).strokeEllipse(e.x, e.y + s * 0.9, s * 2.2, s * 0.9);

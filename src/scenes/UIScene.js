@@ -23,6 +23,8 @@ RD.UIScene = class UIScene extends Phaser.Scene {
     this.tEnemy = this.add.text(0, 150, '', S(38, '#ffffff', 6)).setOrigin(0.5);
     this.tEType = this.add.text(52, 150, '', S(30, '#ffffff', 6)).setOrigin(0, 0.5);   // 이번 라운드 적 타입
     this.tDiff = this.add.text(0, 150, '', S(28, '#ffffff', 6)).setOrigin(1, 0.5);     // 난이도 (적 수 바 오른쪽 끝)
+    // 이벤트 몬스터 패킷: 체력 숫자 + 남은 시간 (필드 맨 위, 패킷이 있을 때만)
+    this.tPacket = this.add.text(RD.W / 2, 226, '', S(32, RD.PACKET.type.color, 6)).setOrigin(0.5).setDepth(5).setVisible(false);
     this.tBoss = this.add.text(548 + 250, 150, '', S(32, '#ffffff', 6)).setOrigin(0.5);
 
     // ── 정보 패널 ──
@@ -242,7 +244,7 @@ RD.UIScene = class UIScene extends Phaser.Scene {
 
     // 적 수 바 / 보스 바
     const g = this.hudG; g.clear();
-    const n = G.enemies.length, lim = G.enemyLimit, ratio = U.clamp(n / lim, 0, 1);
+    const n = L.enemyCount(), lim = G.enemyLimit, ratio = U.clamp(n / lim, 0, 1);
     const bx = 32, by = 116, bh = 64, bw = G.boss ? 500 : 1016;
     g.fillStyle(0x000000, 0.6).fillRoundedRect(bx, by, bw, bh, 18);
     if (ratio > 0) {
@@ -267,6 +269,12 @@ RD.UIScene = class UIScene extends Phaser.Scene {
       setText(this.tBoss, `${b.type.name}  ${Math.ceil(G.bossTimer)}초`);
       this.tBoss.setVisible(true);
     } else this.tBoss.setVisible(false);
+
+    if (G.packet && !G.packet.dead) {
+      const p = G.packet, sec = Math.max(0, Math.ceil(G.packetTimer)), mm = Math.floor(sec / 60), ss = String(sec % 60).padStart(2, '0');
+      setText(this.tPacket, `패킷  ${fmt(Math.max(0, p.hp))} / ${fmt(p.maxHp)}   ${mm}:${ss}`, sec <= 30 && Math.floor(time / 300) % 2 ? '#ffffff' : RD.PACKET.type.color);
+      this.tPacket.setVisible(true);
+    } else this.tPacket.setVisible(false);
 
     // 정보 패널
     const sel = G.selected && !G.selected.removed ? G.selected : null;

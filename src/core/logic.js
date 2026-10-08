@@ -47,6 +47,9 @@ RD.GameLogic = (() => {
         grid,
         selected: null,
         boss: null, bossTimer: 0,
+        packet: null, packetTimer: 0,   // 이벤트 몬스터 패킷 (RD.PACKET)
+        packetKills: 0,                 // 이번 판 패킷 처치 수 → 보상 레벨
+        packetRewards: [],              // 칸이 없어 아직 못 놓은 보상 유닛
         overReason: '',
         uid: 1,
       };
@@ -92,6 +95,7 @@ RD.GameLogic = (() => {
       // 30 스테이지부터 10 스테이지마다 기억 파편 회수 알림 (실제 지급은 판이 끝날 때 RD.Meta.finishRun)
       if (RD.Meta && r >= RD.META.fragmentMinRound && r % 10 === 0)
         this.toast(`기억 파편 신호 감지  ·  지금 종료 시 +${RD.Meta.fragmentsFor(r, this.buffs).total}`, '#7dffb0');
+      if (r % RD.PACKET.every === 0) this.spawnPacket(r);
       if (r % CONFIG.bossEvery === 0) {
         G.spawnLeft = 0;
         this.spawnBoss(r);
@@ -128,6 +132,40 @@ RD.GameLogic = (() => {
       G.boss = this.makeEnemy(bt, Math.ceil(RD.BAL.bossHp(r) * (1 + (this.hpMult() - 1) * RD.BAL.bossDiffShare)), CONFIG.enemyBaseSpeed * 0.55, bt.size, true);
       G.bossTimer = G.bossTime;
       this.toast(`보스 등장! ${bt.name}  (${G.bossTime}초 안에 처치)`, '#ff6b6b');
+    }
+
+    // ── 이벤트 몬스터: 패킷 ──
+    spawnPacket(r) {
+      const G = this.G, P = RD.PACKET;
+      if (G.packet && !G.packet.dead) G.packet.dead = true;   // (이전 패킷이 남아 있으면 정리)
+      const hp = Math.ceil(RD.BAL.enemyHp(r) * P.hpMul * this.hpMult());
+      const e = this.makeEnemy(P.type, hp, RD.CONFIG.enemyBaseSpeed * P.speedMul, P.type.size, false);
+      e.packet = true; e.etype = null;
+      G.packet = e; G.packetTimer = P.timeLimit;
+      this.shakeReq = 1;                 // GameScene 이 화면 흔들림으로 표시
+      this.toast(`패킷 전송이 시작됐습니다. ${Math.round(P.timeLimit / 60)}분 안에 잡으세요!`, P.type.color);
+    }
+    packetReward() {
+      const G = this.G, P = RD.PACKET;
+      const grade = P.rewardGrades[Math.min(G.packetKills, P.rewardGrades.length - 1)];
+      G.packetKills++;
+      const t = pick(RD.HIDDEN_UNITS.filter(u => u.grade === grade));
+      const g = Math.round(RD.BAL.bossGold(G.round) * P.goldMul * this.goldMul.kill);
+      G.gold += g;
+      G.packetRewards.push(t);
+      this.toast(`패킷 확보!  [${RD.unitLevelName(t)}] ${t.name} 획득  ·  +${fmt(g)} 골드`, RD.HIDDEN_COLOR);
+      this.placePacketRewards();
+      if (G.packetRewards.length) this.toast('빈 칸이 생기면 보상 유닛이 배치됩니다', '#ff8a80');
+    }
+    placePacketRewards() {
+      const G = this.G;
+      while (G.packetRewards.length) {
+        const c = this.findFreeCell();
+        if (!c) return;
+        const t = G.packetRewards.shift(), u = this.addUnit(t, c.col, c.row);
+        RD.Codex.make(t.id);
+        this.addFx({ k: 'combine', x: u.x, y: u.y, r: 130, color: 'rainbow', life: 1.0 });
+      }
     }
 
     // ── 유닛 ──
@@ -387,6 +425,12 @@ RD.GameLogic = (() => {
       const G = this.G;
       e.dead = true;
       G.kills++;
+      if (e.packet) {
+        G.packet = null;
+        this.addFx({ k: 'combine', x: e.x, y: e.y, r: 200, color: 'rainbow', life: 1.2 });
+        this.shakeReq = 1;
+        return this.packetReward();
+      }
       const g = Math.round((e.boss ? RD.BAL.bossGold(G.round) : RD.BAL.killGold(G.round)) * this.goldMul.kill);
       G.gold += g;
       this.addFx({ k: 'pop', x: e.x, y: e.y, r: e.size * 1.8, color: e.type.color, life: 0.3 });
@@ -401,12 +445,12 @@ RD.GameLogic = (() => {
     }
     applyStatus(t, e) {
       if (t.slow) {
-        const amt = e.boss ? t.slow * 0.5 : t.slow;
+        const amt = e.boss || e.packet ? t.slow * 0.5 : t.slow;
         e.slowAmt = e.slowT > 0 ? Math.max(e.slowAmt, amt) : amt;
         e.slowT = Math.max(e.slowT, t.slowDur);
       }
       if (t.stun && Math.random() < t.stun) {
-        e.stunT = Math.max(e.stunT, e.boss ? t.stunDur * 0.3 : t.stunDur);
+        e.stunT = Math.max(e.stunT, e.boss || e.packet ? t.stunDur * 0.3 : t.stunDur);
       }
     }
     hit(t, x, y, target, dmg) {
@@ -463,6 +507,9 @@ RD.GameLogic = (() => {
       return pts;
     }
 
+    // 패배 기준 적 수 (패킷 제외)
+    enemyCount() { return this.G.enemies.length - (this.G.packet && !this.G.packet.dead ? 1 : 0); }
+
     // ── 업데이트 (게임 시간 dt 초) ──
     update(dt) {
       const G = this.G, CONFIG = RD.CONFIG;
@@ -485,6 +532,16 @@ RD.GameLogic = (() => {
         G.bossTimer -= dt;
         if (G.bossTimer <= 0 && !G.boss.dead) { this.gameOver('보스를 제한 시간 안에 처치하지 못했습니다'); return; }
       }
+
+      // 패킷: 제한 시간이 지나면 사라짐 (게임은 계속)
+      if (G.packet) {
+        G.packetTimer -= dt;
+        if (G.packetTimer <= 0 && !G.packet.dead) {
+          G.packet.dead = true; G.packet = null;
+          this.toast('패킷 전송 실패  ·  패킷이 사라졌습니다', '#9e9e9e');
+        }
+      }
+      if (G.packetRewards.length) this.placePacketRewards();
 
       // 적 이동
       for (const e of G.enemies) {
@@ -533,7 +590,7 @@ RD.GameLogic = (() => {
       G.floats = G.floats.filter(f => !f.dead);
 
       G.enemies = G.enemies.filter(e => !e.dead);
-      if (G.enemies.length >= G.enemyLimit) this.gameOver(`필드의 적이 ${G.enemyLimit}마리에 도달했습니다`);
+      if (this.enemyCount() >= G.enemyLimit) this.gameOver(`필드의 적이 ${G.enemyLimit}마리에 도달했습니다`);
     }
   }
   return GameLogic;
