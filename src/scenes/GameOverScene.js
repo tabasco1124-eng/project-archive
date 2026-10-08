@@ -38,6 +38,13 @@ RD.GameOverScene = class GameOverScene extends Phaser.Scene {
       this.add.text(250, 1144, `${RD.META.fragmentMinRound} 스테이지 이상 도달하면 회수됩니다`, S(28, '#b9d4ee', 0, 'normal')).setOrigin(0, 0.5);
     }
 
+    // 새로 달성한 업적 (보상은 로비 → 기록·업적에서)
+    if (res && res.ach && res.ach.length) {
+      const names = res.ach.slice(0, 2).map(a => a.name).join(', ') + (res.ach.length > 2 ? ` 외 ${res.ach.length - 2}개` : '');
+      const t = this.add.text(W / 2, 1500, `업적 달성! ${names}`, S(34, '#ffd54f', 6)).setOrigin(0.5);
+      this.add.text(W / 2, 1552, '로비 → 기록 · 업적에서 보상(기억 파편)을 받으세요', S(26, '#e6ecff', 4, 'normal')).setOrigin(0.5);
+      this.tweens.add({ targets: t, scale: 1.06, duration: 500, yoyo: true, repeat: -1 });
+    }
     const restart = () => { if (!this.done) { this.done = true; RD.BGM.start(0); this.scene.start('GameScene'); } };
     const lobby = () => { if (!this.done) { this.done = true; this.scene.stop('GameScene'); this.scene.start('LobbyScene'); } };
     new RD.UIButton(this, RD.UI.btnRestart, { scheme: 'gold', labelSize: 48, onClick: restart }).set('다시 하기', '', true);

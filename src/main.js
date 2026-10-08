@@ -25,5 +25,5 @@ RD.game = new Phaser.Game({
     height: RD.H,
   },
   input: { activePointers: 3 },
-  scene: [RD.BootScene, RD.PreloadScene, RD.TitleScene, RD.LobbyScene, RD.GalleryScene, RD.CapsuleScene, RD.GameScene, RD.UIScene, RD.GameOverScene],
+  scene: [RD.BootScene, RD.PreloadScene, RD.TitleScene, RD.LobbyScene, RD.GalleryScene, RD.CapsuleScene, RD.RecordScene, RD.GameScene, RD.UIScene, RD.GameOverScene],
 });

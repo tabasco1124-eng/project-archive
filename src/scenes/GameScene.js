@@ -48,7 +48,8 @@ RD.GameScene = class GameScene extends Phaser.Scene {
     const G = this.logic.G;
     this.registry.set('speed', G.speed);
     // 기억 파편 정산 (한 판에 한 번) → GameOverScene 에서 표시
-    if (!this.runResult) this.runResult = RD.Meta.finishRun(G.round, G.diff, this.logic.buffs);
+    if (!this.runResult) this.runResult = RD.Meta.finishRun(G.round, G.diff, this.logic.buffs,
+      { kills: G.kills, bossKills: G.bossKills, time: G.time, topGrade: G.topGrade });
     this.endDrag();
     this.scene.launch('GameOverScene');
   }

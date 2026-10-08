@@ -23,7 +23,9 @@ RD.Save = (() => {
       cards: {},                         // { 카드 id: 획득 장수 }
       equip: [null, null, null],         // 싱크 슬롯 (카드 id)
     },
-    stats: { runs: 0, best: {}, last: null },   // best: { 난이도 키: 최고 라운드 }
+    // 기록 (best: { 난이도 키: 최고 라운드 }). 업적 진행도는 여기서 계산 (src/data/achievements.js)
+    stats: { runs: 0, best: {}, last: null, kills: 0, bossKills: 0, bestKills: 0, playTime: 0, topGrade: 0 },
+    ach: { claimed: [], seen: [] },      // 업적: 보상 받은 id / 달성 알림을 띄운 id
   });
 
   // 기본값 위에 저장값을 덮어씀 (새 필드가 추가돼도 옛 저장이 깨지지 않게)

@@ -37,6 +37,8 @@ RD.GameLogic = (() => {
         bossTime: CONFIG.bossTime + b('boss_time'),         // 보스 제한 시간
         mineLv: 0,                  // 채굴 강화 레벨
         kills: 0,
+        bossKills: 0,               // 이번 판 보스 처치 (기록·업적)
+        topGrade: 0,                // 이번 판에 가져 본 최고 일반 유닛 레벨 (기록·업적)
         speed: opts.speed || 1,
         upg: { warrior: 0, archer: 0, wizard: 0 },   // 타입 강화 레벨
         hiddenLv: 0,                // 히든 강화 레벨 (히든 유닛 공격력 배율)
@@ -162,6 +164,7 @@ RD.GameLogic = (() => {
       G.grid[row][col] = u;
       G.units.push(u);
       RD.Codex.see(type.id);
+      if (!type.hidden && type.grade > G.topGrade) G.topGrade = type.grade;
       if (type.hidden && !G.hiddenUnlocked) {
         G.hiddenUnlocked = true;
         this.toast('히든 강화가 열렸습니다!', RD.HIDDEN_COLOR);
@@ -391,6 +394,7 @@ RD.GameLogic = (() => {
         this.addFx({ k: 'combine', x: e.x, y: e.y, r: 160, color: '#ffd54f', life: 0.9 });
         this.toast(`보스 처치!  +${g} 골드`, '#ffd54f');
         G.boss = null;
+        G.bossKills++;
       } else {
         this.addFloat(e.x, e.y - 8, '+' + g, '#ffd54f', 22);
       }

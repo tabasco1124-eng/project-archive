@@ -74,9 +74,15 @@ RD.Meta = (() => {
     const bonus = Math.floor(base * ((buffs && buffs.fragment) || 0) / 100);
     return { base, bonus, total: base + bonus };
   }
-  // 판 종료 정산 (한 판에 한 번). { total, base, bonus, have, best, newBest }
-  function finishRun(round, diff, buffs) {
-    const S = RD.Save.data, f = fragmentsFor(round, buffs);
+  // 판 종료 정산 (한 판에 한 번). run = { kills, bossKills, time, topGrade } → { total, base, bonus, have, best, newBest, ach(새 업적) }
+  function finishRun(round, diff, buffs, run) {
+    const S = RD.Save.data, f = fragmentsFor(round, buffs), st = S.stats;
+    run = run || {};
+    st.kills += run.kills || 0;
+    st.bossKills += run.bossKills || 0;
+    st.playTime += Math.round(run.time || 0);
+    st.bestKills = Math.max(st.bestKills, run.kills || 0);
+    st.topGrade = Math.max(st.topGrade, run.topGrade || 0);
     M().fragments += f.total;
     M().totalFragments += f.total;
     S.stats.runs++;
@@ -84,7 +90,8 @@ RD.Meta = (() => {
     if (round > prev) S.stats.best[diff] = round;
     S.stats.last = { round, diff, fragments: f.total, at: Date.now() };
     RD.Save.save();
-    return Object.assign({}, f, { have: M().fragments, best: Math.max(prev, round), newBest: round > prev });
+    const ach = RD.Achieve ? RD.Achieve.popNew() : [];
+    return Object.assign({}, f, { have: M().fragments, best: Math.max(prev, round), newBest: round > prev, ach });
   }
 
   // ── 메모리 캡슐 ──

@@ -9,7 +9,7 @@
  *   y 1030~1120  난이도 [이지][노멀][하드] 각 190x90
  *   y 1160~1310  [다이브 시작] 600x150
  *   y 1360~1490  [히로인 갤러리] [메모리 캡슐] 각 465x130
- *   y 1540~1630  [작전 브리핑] 500x90
+ *   y 1540~1640  [기록 · 업적] [작전 브리핑] 각 465x100
  *   y 1690~1770  시스템 메시지 티커
  *   y 1860       버전
  */
@@ -58,7 +58,12 @@ RD.LobbyScene = class LobbyScene extends Phaser.Scene {
       const dot = this.add.circle(1006, 1374, 16, 0xff2a3d).setStrokeStyle(3, 0xffffff);
       this.tweens.add({ targets: dot, scale: 1.25, duration: 500, yoyo: true, repeat: -1 });
     }
-    RD.Neon.button(this, { x: 290, y: 1540, w: 500, h: 90 }, '작전 브리핑', '', 0x7c4dff, () => this.openBriefing(), { size: 36 });
+    RD.Neon.button(this, { x: 60, y: 1540, w: 465, h: 100 }, '기록 · 업적', '', 0xffc935, () => this.go('RecordScene', {}), { size: 38 });
+    if (RD.Achieve.claimable().length) {   // 받을 보상 알림 점
+      const dot = this.add.circle(506, 1554, 16, 0xff2a3d).setStrokeStyle(3, 0xffffff);
+      this.tweens.add({ targets: dot, scale: 1.25, duration: 500, yoyo: true, repeat: -1 });
+    }
+    RD.Neon.button(this, { x: 555, y: 1540, w: 465, h: 100 }, '작전 브리핑', '', 0x7c4dff, () => this.openBriefing(), { size: 38 });
 
     // ── 티커 ──
     const last = SV.stats.last;
