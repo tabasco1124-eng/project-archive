@@ -16,12 +16,27 @@ RD.UIButton = class UIButton {
     this.sub = scene.add.text(cx, cy + 40, '', S(opts.subSize || 28, this.light ? '#ffffffd9' : '#4a2600')).setOrigin(0.5);
     this.icon = scene.add.graphics();
     this.zone = scene.add.zone(r.x, r.y, r.w, r.h).setOrigin(0).setInteractive({ useHandCursor: true });
-    this.zone.on('pointerdown', () => { this.pressed = true; this.layout(); });
-    this.zone.on('pointerout', () => { this.pressed = false; this.layout(); });
-    this.zone.on('pointerup', () => {
-      const was = this.pressed; this.pressed = false; this.layout();
-      if (was && this.onClick) this.onClick();
+    // opts.repeat = { delay, interval } (ms): 꾹 누르고 있으면 delay 뒤부터 interval마다 반복 실행.
+    // onClick이 거짓 값을 돌려주면(골드 부족, 자리 없음 등) 반복을 멈춤. 짧게 누르면 기존처럼 한 번만 실행.
+    this.repeat = opts.repeat || null; this.holdTimer = null; this.repeated = false;
+    this.zone.on('pointerdown', () => {
+      this.pressed = true; this.layout();
+      if (this.repeat) this.startHold();
     });
+    this.zone.on('pointerout', () => { this.pressed = false; this.stopHold(); this.layout(); });
+    this.zone.on('pointerup', () => {
+      const was = this.pressed, repeated = this.repeated;
+      this.pressed = false; this.stopHold(); this.layout();
+      if (was && !repeated && this.onClick) this.onClick();
+    });
+    // 버튼 밖(캔버스 밖 포함)에서 손을 떼도 반복을 멈춤
+    if (this.repeat) {
+      const end = (p, over) => {
+        if (Array.isArray(over) && over.includes(this.zone)) return;   // 버튼 위에서 뗀 경우는 zone의 pointerup이 처리
+        if (this.holdTimer) { this.pressed = false; this.stopHold(); this.layout(); } };
+      scene.input.on('pointerup', end); scene.input.on('pointerupoutside', end); scene.input.on('gameout', end);
+      scene.events.once('shutdown', () => this.stopHold());
+    }
     this.parts = [this.shadow, this.bg, this.label, this.sub, this.icon, this.zone];
     this.iconName = null;
     this.layout();
@@ -52,6 +67,19 @@ RD.UIButton = class UIButton {
       else g.fillTriangle(cx - 12, cy - 20, cx + 20, cy, cx - 12, cy + 20);
     }
   }
+  // 실제 시간 기준 타이머: 프레임이 떨어져도(폰 과부하) 일정한 속도로 반복
+  startHold() {
+    this.stopHold(); this.repeated = false;
+    const tick = () => {
+      this.holdTimer = null;
+      if (!this.pressed || !this.onClick) return;
+      this.repeated = true;
+      if (!this.onClick()) return;
+      this.holdTimer = setTimeout(tick, this.repeat.interval);
+    };
+    this.holdTimer = setTimeout(tick, this.repeat.delay);
+  }
+  stopHold() { if (this.holdTimer) { clearTimeout(this.holdTimer); this.holdTimer = null; } }
   setDepth(d) { this.parts.forEach(p => p.setDepth(d)); return this; }
   // 숨기면 터치도 받지 않음
   setVisible(v) {
@@ -59,7 +87,7 @@ RD.UIButton = class UIButton {
     this.visible = v;
     this.parts.forEach(p => p.setVisible(v));
     if (this.zone.input) this.zone.input.enabled = v;
-    if (!v) this.pressed = false;
+    if (!v) { this.pressed = false; this.stopHold(); }
     return this;
   }
 };
