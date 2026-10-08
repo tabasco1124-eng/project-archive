@@ -22,6 +22,7 @@ RD.UIScene = class UIScene extends Phaser.Scene {
     this.tMineral = this.add.text(658, 62, '', S(36, RD.CURRENCIES.mineral.color, 6)).setOrigin(0, 0.5);
     this.tEnemy = this.add.text(0, 150, '', S(38, '#ffffff', 6)).setOrigin(0.5);
     this.tEType = this.add.text(52, 150, '', S(30, '#ffffff', 6)).setOrigin(0, 0.5);   // 이번 라운드 적 타입
+    this.tDiff = this.add.text(0, 150, '', S(28, '#ffffff', 6)).setOrigin(1, 0.5);     // 난이도 (적 수 바 오른쪽 끝)
     this.tBoss = this.add.text(548 + 250, 150, '', S(32, '#ffffff', 6)).setOrigin(0.5);
 
     // ── 정보 패널 ──
@@ -244,6 +245,9 @@ RD.UIScene = class UIScene extends Phaser.Scene {
     setText(this.tEnemy, `적 ${n} / ${lim}`);
     const ET = RD.ENEMY_TYPES[G.etype];
     setText(this.tEType, ET.name, ET.color);
+    const DF = RD.DIFFICULTIES[G.diff];
+    this.tDiff.x = bx + bw - 22;
+    setText(this.tDiff, DF.name, DF.color);
     if (G.boss) {
       const x = 548, w = 500, b = G.boss, fw = w * U.clamp(b.hp / b.maxHp, 0, 1);
       g.fillStyle(0x3c0000, 0.75).fillRoundedRect(x, by, w, bh, 18);

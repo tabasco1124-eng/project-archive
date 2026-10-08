@@ -20,6 +20,7 @@ RD.GameLogic = (() => {
         roundTimer: CONFIG.firstRoundDelay,
         spawnLeft: 0, spawnTimer: 0,
         enemyType: RD.ENEMIES[0],
+        diff: opts.difficulty || RD.Difficulty.get(),   // 난이도 키 (RD.DIFFICULTIES)
         etype: RD.roundEnemyType(1),   // 지금(시작 전이면 다음) 라운드의 적 타입
         gold: CONFIG.startGold,     // 처치 자원
         mineral: CONFIG.startMineral, // 채굴 자원 (소수점 누적, 표시 시 내림)
@@ -98,12 +99,17 @@ RD.GameLogic = (() => {
     }
     spawnEnemy() {
       const G = this.G, et = G.enemyType;
-      this.makeEnemy(et, Math.ceil(RD.BAL.enemyHp(G.round) * et.hp), RD.CONFIG.enemyBaseSpeed * et.spd, et.size, false);
+      this.makeEnemy(et, Math.ceil(RD.BAL.enemyHp(G.round) * this.hpMult() * et.hp), RD.CONFIG.enemyBaseSpeed * et.spd, et.size, false);
+    }
+    // 난이도 체력 배율 (이번 라운드)
+    hpMult() {
+      const d = RD.DIFFICULTIES[this.G.diff] || RD.DIFFICULTIES.easy;
+      return d.hpMult(this.G.round);
     }
     spawnBoss(r) {
       const G = this.G, CONFIG = RD.CONFIG;
       const bt = RD.BOSSES[(r / CONFIG.bossEvery - 1) % RD.BOSSES.length];
-      G.boss = this.makeEnemy(bt, RD.BAL.bossHp(r), CONFIG.enemyBaseSpeed * 0.55, bt.size, true);
+      G.boss = this.makeEnemy(bt, Math.ceil(RD.BAL.bossHp(r) * (1 + (this.hpMult() - 1) * RD.BAL.bossDiffShare)), CONFIG.enemyBaseSpeed * 0.55, bt.size, true);
       G.bossTimer = CONFIG.bossTime;
       this.toast(`보스 등장! ${bt.name}  (${CONFIG.bossTime}초 안에 처치)`, '#ff6b6b');
     }

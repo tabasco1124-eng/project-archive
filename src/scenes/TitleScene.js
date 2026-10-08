@@ -4,6 +4,7 @@
  *   y 120        상단 링크 상태 바
  *   y 520~800    타이틀 / 서브타이틀 / 세계관 한 줄
  *   y 1060       사각 결계 엠블럼 (회전)
+ *   y 1215       난이도 선택 [이지][노멀][하드] 각 190x90
  *   y 1330       [다이브 시작] 600x150
  *   y 1520       [작전 브리핑] 600x110
  *   y 1720       시스템 메시지 티커
@@ -59,6 +60,7 @@ RD.TitleScene = class TitleScene extends Phaser.Scene {
     // ── 버튼 ──
     this.makeNeonButton({ x: 240, y: 1330, w: 600, h: 150 }, '다이브 시작', 'DIVE IN', 0x00e5ff, () => this.dive());
     this.makeNeonButton({ x: 240, y: 1520, w: 600, h: 110 }, '작전 브리핑', null, 0xff2bd6, () => this.openBriefing());
+    this.makeDifficulty();
 
     // ── 시스템 메시지 티커 ──
     this.messages = [
@@ -119,6 +121,30 @@ RD.TitleScene = class TitleScene extends Phaser.Scene {
     zone.on('pointerup', () => { const was = pressed; pressed = false; draw(false, true); if (was && !this.briefing) onClick(); });
     draw(false, false);
     return zone;
+  }
+
+  // 난이도 선택 (RD.DIFFICULTIES, 선택은 localStorage 에 기억)
+  makeDifficulty() {
+    const S = RD.util.textStyle, keys = RD.DIFF_KEYS, w = 190, gap = 15, h = 90, y = 1212;
+    const x0 = RD.W / 2 - (keys.length * w + (keys.length - 1) * gap) / 2;
+    const g = this.add.graphics();
+    const items = keys.map((k, i) => {
+      const d = RD.DIFFICULTIES[k], x = x0 + i * (w + gap);
+      const t = this.add.text(x + w / 2, y + h / 2, d.name, S(38, d.color)).setOrigin(0.5);
+      const z = this.add.zone(x, y, w, h).setOrigin(0).setInteractive({ useHandCursor: true });
+      z.on('pointerup', () => { if (this.briefing || this.started) return; RD.Difficulty.set(k); draw(); });
+      return { k, x, t, col: RD.util.colorInt(d.color) };
+    });
+    const draw = () => {
+      g.clear();
+      for (const it of items) {
+        const on = RD.Difficulty.get() === it.k;
+        g.fillStyle(it.col, on ? 0.25 : 0.05).fillRect(it.x, y, w, h);
+        g.lineStyle(on ? 5 : 2, it.col, on ? 1 : 0.35).strokeRect(it.x, y, w, h);
+        it.t.setAlpha(on ? 1 : 0.45);
+      }
+    };
+    draw();
   }
 
   typeMessage() {

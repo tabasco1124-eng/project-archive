@@ -64,6 +64,7 @@ RD.BAL = {
   //  봇은 압박도 약 1.3(초중반)~2(200R 전후)까지 버팀 → 사람 숙련자는 200R 전후에서 막히도록
   pressure:   r => (Math.min(0.8, Math.max(0.35, 0.35 + 0.03 * (r - 20))) + 0.4 * Math.min(1, Math.max(0, (r - 60) / 90))) * Math.pow(1.012, Math.max(0, r - 150)),
   spawnCount: r => 20 + Math.min(20, Math.floor(r / 2)),
+  bossDiffShare: 0.5,   // 난이도 체력 배율 중 보스에 적용하는 비율 (보스는 단일 대상이라 그대로 올리면 운이 나쁜 판이 보스에서 일찍 막힘)
   bossHp:     r => RD.BAL.enemyHp(r) * 3,      // 보스는 단일 대상 + 90초 제한이라 일반 적 3마리분 (시뮬레이션상 일반 웨이브와 비슷한 난이도)
   killGold:   r => 1 + Math.floor(r / 4),
   roundGold:  r => 20 + 10 * r,
@@ -75,6 +76,35 @@ RD.BAL = {
   hiddenUpgradeCost: lv => Math.round(300 * Math.pow(1.3, lv) / 10) * 10,
   hiddenMult:  lv => 1 + 0.25 * lv,         // 히든 유닛 공격력 배율 (타입 강화와 별도로 곱해짐)
 };
+
+/* ── 난이도 ──
+ *  hpMult(r): 적·보스 체력에 곱하는 배율. 보상(골드·광물)은 모든 난이도 같음
+ *  이지 = 위 기본 밸런스 그대로. 노멀/하드는 초반은 조금만, 라운드가 갈수록 크게 단단해짐
+ *   (초반부터 크게 올리면 Lv.4·5 가 나오기 전인 40R 무렵에 막혀 버려서, 라운드에 비례해 올림)
+ *  적 체력은 라운드만으로 정해지는 고정 곡선 (플레이어 보드와 무관) → 운·실력으로 DPS 를 더 뽑으면 그만큼 더 감
+ *  검증: DIFF=easy|normal|hard BOT=sloppy|avg|skilled node tools/balance_sim.js 12 400 (12판씩, 도달 라운드 중앙값 [범위])
+ *           sloppy(판매·레시피 안 씀)   avg(기본 봇)          skilled(빠른 조작+배치)
+ *    이지    58 [53~72]               226 [53~257]          235 [179~262]
+ *    노멀    53 [46~62]               158 [53~175]          153 [58~234]
+ *    하드    53 [46~53]               107 [45~162]           97 [53~152]
+ *   사람은 봇보다 느리므로 노멀 ~140R, 하드 ~90R 전후가 목표. 같은 봇도 운에 따라 100R 이상 차이남
+ *  난이도를 추가하려면 여기에 항목을 넣고 DIFF_KEYS 에 키를 추가 */
+RD.DIFFICULTIES = {
+  easy:   { name: '이지', color: '#69f0ae', desc: '여유롭게 진행', hpMult: r => 1 },
+  normal: { name: '노멀', color: '#ffd54f', desc: '표준 난이도',   hpMult: r => 1 + 0.01 * Math.max(0, r - 20) },
+  hard:   { name: '하드', color: '#ff5252', desc: '숙련자용',      hpMult: r => 1.05 + 0.015 * Math.max(0, r - 20) },
+};
+RD.DIFF_KEYS = ['easy', 'normal', 'hard'];
+// 선택한 난이도 (판을 넘어 유지, localStorage. 저장이 막힌 환경에서는 그 판에서만 유지)
+RD.Difficulty = (() => {
+  const KEY = 'rd_difficulty_v1';
+  let cur = 'normal';
+  try { const v = localStorage.getItem(KEY); if (v && RD.DIFFICULTIES[v]) cur = v; } catch (e) { /* 무시 */ }
+  return {
+    get: () => cur,
+    set(k) { if (!RD.DIFFICULTIES[k]) return; cur = k; try { localStorage.setItem(KEY, k); } catch (e) { /* 무시 */ } },
+  };
+})();
 
 /* 자원 종류. 재화가 늘어나면 여기에 추가하고 GameLogic.canAfford / spend 로 다룬다.
  *  gold    : 적 처치·라운드 보상으로 획득 → 유닛 소환, 채굴 강화, 타입 변경
