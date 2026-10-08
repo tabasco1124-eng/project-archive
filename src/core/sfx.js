@@ -3,7 +3,8 @@
  *  - 공격 연출(fx)별 소리 묶음, 매번 그중 하나를 골라 반복감을 줄임
  *      워리어 slash: 칼 휘두름 (Lv.2 이상은 도끼 휘두름 + 타격음)
  *      아처 arrow: 활/석궁 발사, bullet: 총성, missile: 포격
- *      위저드 orb: 마법 시전, beam: 레이저 (Lv.2 이상은 큰 레이저), lightning: 천둥, fire: 화염, holy: 종소리
+ *      위저드 orb: 마법 시전, beam: 레이저 (Lv.2 이상은 큰 레이저), lightning: 천둥, fire: 화염, holy: 낮은 마법 시전음
+ *  - 유닛 데이터에 sfx(소리 묶음 이름)가 있으면 fx 대신 그 소리를 씀 (예: 민병대 → 휘두름)
  *  - 배경 음악이 묻히지 않도록: 효과음 전체 볼륨을 낮게(RD.SFX_VOLUME) + 고음 살짝 컷 + 컴프레서
  *  - 유닛이 많아도 시끄럽지 않게: 같은 소리 최소 간격(GAP), 동시 재생 수 제한(MAX_VOICES),
  *    최근 재생이 몰리면 한 번당 볼륨을 줄임
@@ -27,7 +28,7 @@ RD.SFX = (() => {
     beamH:  { files: ['beam2'], gain: 0.35 },
     bolt:   { files: ['bolt1'], gain: 0.5 },
     fire:   { files: ['fire1', 'fire2'], gain: 0.7 },
-    holy:   { files: ['holy1', 'holy2'], gain: 0.45 },
+    holy:   { files: ['orb1', 'orb2'], gain: 0.5, rate: 0.8 },   // 신성 마법: 마법 시전음을 낮은 음으로
   };
   // 공격 연출(fx) → 소리 묶음 [Lv.0~1, Lv.2 이상]
   const FX = {
@@ -95,7 +96,7 @@ RD.SFX = (() => {
     g.gain.value = S.gain * (vol || 1) / Math.sqrt(Math.max(1, recent / 2));
     const src = ctx.createBufferSource();
     src.buffer = bufs[ready[Math.floor(Math.random() * ready.length)]];
-    src.playbackRate.value = 0.95 + Math.random() * 0.1;       // 매번 살짝 다른 음높이
+    src.playbackRate.value = (S.rate || 1) * (0.95 + Math.random() * 0.1);   // 매번 살짝 다른 음높이
     src.connect(g); g.connect(bus);
     voices++;
     src.onended = () => { voices--; g.disconnect(); };
@@ -106,7 +107,7 @@ RD.SFX = (() => {
   return {
     // 유닛 공격 시 호출 (t = 유닛 타입 데이터)
     attack(t) {
-      const sets = FX[t.fx];
+      const sets = t.sfx ? [t.sfx, t.sfx] : FX[t.fx];
       if (!sets) return;
       // 레벨이 높을수록 조금 크게, Lv.3 은 간격 제한을 무시 (동시 재생 수 제한은 적용)
       play(sets[t.grade >= 2 ? 1 : 0], 0.8 + 0.08 * t.grade, t.grade >= 3);

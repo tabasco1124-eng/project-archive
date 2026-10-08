@@ -6,7 +6,7 @@
  *     Lv.0 ×3 → 같은 line 의 Lv.1 중 랜덤 타입
  *     Lv.1 ×3 → 같은 타입의 Lv.2 중 랜덤
  *     Lv.2 ×3 → next 로 정해진 Lv.3 (고정 조합)
- *   선택: line(Lv.0/1 계열 번호), next(Lv.2 → Lv.3 id), splash(광역 반경), slow(감속 비율 0~1), slowDur, stun(기절 확률), stunDur
+ *   선택: sfx(공격 효과음 묶음 이름, 생략 시 fx 로 결정: src/core/sfx.js SETS), line(Lv.0/1 계열 번호), next(Lv.2 → Lv.3 id), splash(광역 반경), slow(감속 비율 0~1), slowDur, stun(기절 확률), stunDur
  *         color(몸통색), pcolor(투사체/이펙트 색)
  *   fx: slash(근접, 즉시) | beam(레이저, 즉시) | lightning(번개, 즉시)
  *       arrow | bullet | orb | fire | holy | missile (투사체)
@@ -41,7 +41,7 @@ const SP = RD.ATK_SPEED;
 RD.UNITS = [
   // ── Lv.0 (타입 없음, 강화 영향 없음) ──
   { id:'recruit',  name:'훈련병',     short:'훈련', grade:0, cat:'none', line:0, dmg:12, coef:0, spd:SP.느림,  range:180, fx:'slash',  color:'#8d6e63' },
-  { id:'militia',  name:'민병대',     short:'민병', grade:0, cat:'none', line:1, dmg:5,  coef:0, spd:SP.보통,  range:300, fx:'bullet', color:'#3949ab' },
+  { id:'militia',  name:'민병대',     short:'민병', grade:0, cat:'none', line:1, dmg:5,  coef:0, spd:SP.보통,  range:300, fx:'bullet', sfx:'sword', color:'#3949ab' },
   { id:'wisp',     name:'꼬마정령',   short:'정령', grade:0, cat:'none', line:2, dmg:4,  coef:0, spd:SP.빠름,  range:260, fx:'orb',    color:'#5e35b1', pcolor:'#b388ff' },
 
   // ── Lv.1 워리어 ──

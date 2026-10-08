@@ -19,5 +19,3 @@ beam2   laserLarge_000.ogg              - Kenney "Sci-fi Sounds"
 bolt1   sfx100v2_thunder_01.ogg         - "100 CC0 SFX #2" (rubberduck) https://opengameart.org/content/100-cc0-sfx-2
 fire1   spell_fire_06.ogg               - "80 CC0 RPG SFX" (rubberduck)
 fire2   spell_fire_04.ogg               - 〃
-holy1   bell_01.ogg                     - "100 CC0 SFX" (rubberduck)
-holy2   bell_03.ogg                     - 〃
