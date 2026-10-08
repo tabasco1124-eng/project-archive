@@ -20,6 +20,7 @@ RD.GameLogic = (() => {
         roundTimer: CONFIG.firstRoundDelay,
         spawnLeft: 0, spawnTimer: 0,
         enemyType: RD.ENEMIES[0],
+        etype: RD.roundEnemyType(1),   // 지금(시작 전이면 다음) 라운드의 적 타입
         gold: CONFIG.startGold,     // 처치 자원
         mineral: CONFIG.startMineral, // 채굴 자원 (소수점 누적, 표시 시 내림)
         mineLv: 0,                  // 채굴 강화 레벨
@@ -71,6 +72,9 @@ RD.GameLogic = (() => {
       } else {
         this.toast('라운드 1 시작!', '#ffe082');
       }
+      G.etype = RD.roundEnemyType(r);     // 이번 라운드 적 타입 (상성)
+      const ET = RD.ENEMY_TYPES[G.etype];
+      this.toast(`${ET.name} 적 출현  ·  ${this.counterText(G.etype)}`, ET.color);
       if (r % CONFIG.bossEvery === 0) {
         G.spawnLeft = 0;
         this.spawnBoss(r);
@@ -80,8 +84,13 @@ RD.GameLogic = (() => {
         G.spawnTimer = 0;
       }
     }
+    // 적 타입 et 에게 강한 유닛 타입 안내 문구
+    counterText(et) {
+      const k = RD.CAT_KEYS.find(c => RD.TYPE_MULT[c][et] > 1), w = RD.CAT_KEYS.find(c => RD.TYPE_MULT[c][et] < 1);
+      return `${RD.CATEGORIES[k].name} 강함 · ${RD.CATEGORIES[w].name} 약함`;
+    }
     makeEnemy(type, hp, speed, size, boss) {
-      const e = { type, hp, maxHp: hp, s: 0, off: boss ? 0 : rand(-14, 14), speed, size, boss,
+      const e = { type, etype: this.G.etype || RD.roundEnemyType(this.G.round), hp, maxHp: hp, s: 0, off: boss ? 0 : rand(-14, 14), speed, size, boss,
         slowT: 0, slowAmt: 0, stunT: 0, hitT: 0, dead: false, x: RD.PATH.l, y: RD.PATH.t, wob: rand(0, TAU) };
       pathPos(0, e.off, e);
       this.G.enemies.push(e);
@@ -334,11 +343,15 @@ RD.GameLogic = (() => {
     }
 
     // ── 전투 ──
-    damage(e, dmg, show) {
+    // mult: 상성 배율 (데미지 숫자 색: 강함 주황 · 약함 회색)
+    damage(e, dmg, show, mult) {
       if (e.dead) return;
       e.hp -= dmg;
       e.hitT = 0.08;
-      if (show && RD.CONFIG.showDamage) this.addFloat(e.x + rand(-12, 12), e.y - e.size - 12, fmt(dmg), e.boss ? '#ffcdd2' : '#ffffff', e.boss ? 30 : 24);
+      if (show && RD.CONFIG.showDamage) {
+        const col = mult > 1 ? '#ffab40' : mult < 1 ? '#9e9e9e' : e.boss ? '#ffcdd2' : '#ffffff';
+        this.addFloat(e.x + rand(-12, 12), e.y - e.size - 12, fmt(dmg), col, (e.boss ? 30 : 24) + (mult > 1 ? 4 : 0));
+      }
       if (e.hp <= 0) this.killEnemy(e);
     }
     killEnemy(e) {
@@ -372,12 +385,13 @@ RD.GameLogic = (() => {
         for (const e of this.G.enemies) {
           if (e.dead) continue;
           const dx = e.x - x, dy = e.y - y, rr = r + e.size;
-          if (dx * dx + dy * dy <= rr * rr) { this.applyStatus(t, e); this.damage(e, dmg, e === target); }
+          if (dx * dx + dy * dy <= rr * rr) { const m = RD.typeMult(t, e.etype); this.applyStatus(t, e); this.damage(e, dmg * m, e === target, m); }
         }
         this.addFx({ k: 'boom', x, y, r, color: t.pcolor || GameLogic.fxColor(t), life: 0.28 });
       } else if (target && !target.dead) {
+        const m = RD.typeMult(t, target.etype);
         this.applyStatus(t, target);
-        this.damage(target, dmg, true);
+        this.damage(target, dmg * m, true, m);
         this.addFx({ k: 'spark', x, y, r: 12, color: t.pcolor || GameLogic.fxColor(t), life: 0.15 });
       }
     }

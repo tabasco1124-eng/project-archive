@@ -334,6 +334,10 @@ RD.GameScene = class GameScene extends Phaser.Scene {
     for (const e of G.enemies) {
       const s = e.size;
       if (e.slowT > 0) g.lineStyle(4, 0x64c8ff, 0.8).strokeCircle(e.x, e.y, s + 6);
+      // 적 타입 표시: 발밑 색 링 + 머리 위 작은 마름모 (장갑 주황 · 기동 노랑 · 데이터 하늘)
+      const tc = cInt(RD.ENEMY_TYPES[e.etype].color), my = e.y - s - (e.boss ? 44 : 30);
+      g.lineStyle(e.boss ? 5 : 3, tc, 0.85).strokeEllipse(e.x, e.y + s * 0.9, s * 2.2, s * 0.9);
+      g.fillStyle(tc, 1).fillPoints([{ x: e.x, y: my - 7 }, { x: e.x + 6, y: my }, { x: e.x, y: my + 7 }, { x: e.x - 6, y: my }], true);
       if (e.stunT > 0) {
         g.fillStyle(0xffeb3b, 1);
         for (let i = 0; i < 3; i++) { const a = time / 150 + i * TAU / 3; g.fillCircle(e.x + Math.cos(a) * s, e.y - s - 8 + Math.sin(a) * 6, 4.4); }

@@ -21,6 +21,7 @@ RD.UIScene = class UIScene extends Phaser.Scene {
     this.add.image(634, 60, RD.CURRENCIES.mineral.icon).setScale(0.85);
     this.tMineral = this.add.text(658, 62, '', S(36, RD.CURRENCIES.mineral.color, 6)).setOrigin(0, 0.5);
     this.tEnemy = this.add.text(0, 150, '', S(38, '#ffffff', 6)).setOrigin(0.5);
+    this.tEType = this.add.text(52, 150, '', S(30, '#ffffff', 6)).setOrigin(0, 0.5);   // 이번 라운드 적 타입
     this.tBoss = this.add.text(548 + 250, 150, '', S(32, '#ffffff', 6)).setOrigin(0.5);
 
     // ── 정보 패널 ──
@@ -239,8 +240,10 @@ RD.UIScene = class UIScene extends Phaser.Scene {
       g.fillStyle(col, 1).fillRoundedRect(bx, by, fw, bh, Math.min(18, fw / 2));
     }
     g.lineStyle(4, 0xffffff, 0.35).strokeRoundedRect(bx, by, bw, bh, 18);
-    this.tEnemy.x = bx + bw / 2;
+    this.tEnemy.x = bx + bw / 2 + 40;
     setText(this.tEnemy, `적 ${n} / ${lim}`);
+    const ET = RD.ENEMY_TYPES[G.etype];
+    setText(this.tEType, ET.name, ET.color);
     if (G.boss) {
       const x = 548, w = 500, b = G.boss, fw = w * U.clamp(b.hp / b.maxHp, 0, 1);
       g.fillStyle(0x3c0000, 0.75).fillRoundedRect(x, by, w, bh, 18);
@@ -255,6 +258,8 @@ RD.UIScene = class UIScene extends Phaser.Scene {
     this.idle.forEach(t => t.setVisible(!sel));
     Object.values(this.sel).forEach(o => o.setVisible(!!sel));
     if (!sel) {
+      // 상성 안내 (유닛 타입 → 강한 적 타입)
+      setText(this.idle[1], RD.CAT_KEYS.map(k => `${RD.CATEGORIES[k].name}→${RD.ENEMY_TYPES[RD.strongVs(k)].short}`).join(' · ') + ` 강함 ×${RD.TYPE_MULT.warrior[RD.strongVs('warrior')]}`);
       setText(this.idle[2], `보유 유닛 ${G.units.length} / ${RD.UNIT_CAP}      처치 ${fmt(G.kills)}`);
       if (this.preview) { this.preview.destroy(); this.preview = null; this.previewType = null; }
     } else {
@@ -280,7 +285,10 @@ RD.UIScene = class UIScene extends Phaser.Scene {
       setText(this.sel.stats, `공격력 ${fmt(dmg)}   공속 ${t.spd}초   사거리 ${t.range}`);
       const catName = (t.hidden ? '히든·' : '') + RD.CATEGORIES[t.cat].name;
       setText(this.sel.special, `[${catName}] ${U.specialText(t)}`, t.hidden ? RD.HIDDEN_COLOR : RD.CATEGORIES[t.cat].color);
-      setText(this.sel.dps, `DPS ${fmt(dmg / t.spd)}`);
+      // 이번 라운드 적 타입에 대한 실제 DPS (상성 배율 반영, 강함 초록 · 약함 빨강)
+      const m = RD.typeMult(t, G.etype);
+      setText(this.sel.dps, `DPS ${fmt(dmg / t.spd * m)}${m !== 1 ? ` ×${m}` : ''}`,
+        m > 1 ? '#69f0ae' : m < 1 ? '#ff8a80' : '#ffd54f');
     }
 
     // 버튼 상태
