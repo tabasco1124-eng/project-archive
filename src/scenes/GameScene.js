@@ -9,7 +9,9 @@ RD.GameScene = class GameScene extends Phaser.Scene {
   constructor() { super('GameScene'); }
 
   create() {
-    this.logic = new RD.GameLogic({ speed: this.registry.get('speed') || 1, onGameOver: () => this.onGameOver() });
+    // 싱크 슬롯에 장착한 히로인 카드 능력을 이번 판에 적용
+    this.logic = new RD.GameLogic({ speed: this.registry.get('speed') || 1, onGameOver: () => this.onGameOver(), buffs: RD.Meta.runBuffs() });
+    this.runResult = null;
     RD.debug.attach(this);
 
     this.add.image(0, 0, 'bg_map').setOrigin(0).setDepth(0);
@@ -43,7 +45,10 @@ RD.GameScene = class GameScene extends Phaser.Scene {
   }
 
   onGameOver() {
-    this.registry.set('speed', this.logic.G.speed);
+    const G = this.logic.G;
+    this.registry.set('speed', G.speed);
+    // 기억 파편 정산 (한 판에 한 번) → GameOverScene 에서 표시
+    if (!this.runResult) this.runResult = RD.Meta.finishRun(G.round, G.diff, this.logic.buffs);
     this.endDrag();
     this.scene.launch('GameOverScene');
   }

@@ -206,21 +206,16 @@ RD.unitLevelName = t => (t.hidden ? '히든 ' : '') + RD.GRADES[t.grade].name;
 // 이 유닛이 재료로 들어가는 히든 레시피들
 RD.recipesUsing = t => RD.RECIPES.filter(r => r.needs.includes(t.id));
 
-/* 도감 기록 (판을 넘어 유지, localStorage): seen = 가져본 적 있는 유닛, made = 만들어 본 히든 유닛
- *  저장소가 막힌 환경(시크릿 모드 등)에서도 그 판 안에서는 동작하도록 실패는 무시 */
+/* 도감 기록 (판을 넘어 유지, RD.Save 의 codex): seen = 가져본 적 있는 유닛, made = 만들어 본 히든 유닛
+ *  저장소가 막힌 환경(시크릿 모드 등)에서도 그 판 안에서는 동작 */
 RD.Codex = (() => {
-  const KEY = 'rd_codex_v1';
-  let seen = new Set(), made = new Set();
-  try {
-    const d = JSON.parse(localStorage.getItem(KEY) || '{}');
-    seen = new Set(d.seen || []); made = new Set(d.made || []);
-  } catch (e) { /* 무시 */ }
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ seen: [...seen], made: [...made] })); } catch (e) { /* 무시 */ } };
+  const cx = () => RD.Save.data.codex;
+  const add = (list, id) => { const a = cx()[list]; if (!a.includes(id)) { a.push(id); RD.Save.save(); } };
   return {
-    seen: id => seen.has(id),
-    made: id => made.has(id),
-    see(id) { if (!seen.has(id)) { seen.add(id); save(); } },
-    make(id) { if (!made.has(id)) { made.add(id); save(); } },
+    seen: id => cx().seen.includes(id),
+    made: id => cx().made.includes(id),
+    see(id) { add('seen', id); },
+    make(id) { add('made', id); },
   };
 })();
 

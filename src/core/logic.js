@@ -11,6 +11,15 @@ RD.GameLogic = (() => {
     constructor(opts) {
       opts = opts || {};
       const CONFIG = RD.CONFIG;
+      // 히로인 카드 버프 (RD.Meta.runBuffs, 키는 RD.CARD_STATS). % 값은 그대로(예: 12 = +12%)
+      this.buffs = Object.assign({}, opts.buffs || {});
+      const b = k => this.buffs[k] || 0;
+      this.dmgMul = { warrior: 1 + (b('dmg_all') + b('dmg_warrior')) / 100, archer: 1 + (b('dmg_all') + b('dmg_archer')) / 100,
+        wizard: 1 + (b('dmg_all') + b('dmg_wizard')) / 100, none: 1 + b('dmg_all') / 100, hidden: 1 + (b('dmg_all') + b('dmg_hidden')) / 100 };
+      this.spdMul = 1 / (1 + b('aspd') / 100);
+      this.bossMul = 1 + b('boss_dmg') / 100;
+      this.goldMul = { kill: 1 + b('kill_gold') / 100, round: 1 + b('round_gold') / 100, sell: 1 + b('sell_refund') / 100 };
+      this.mineMul = 1 + b('mine_rate') / 100;
       const grid = [];
       for (let r = 0; r < RD.GRID.rows; r++) grid.push(new Array(RD.GRID.cols).fill(null));
       this.G = {
@@ -22,8 +31,10 @@ RD.GameLogic = (() => {
         enemyType: RD.ENEMIES[0],
         diff: opts.difficulty || RD.Difficulty.get(),   // 난이도 키 (RD.DIFFICULTIES)
         etype: RD.roundEnemyType(1),   // 지금(시작 전이면 다음) 라운드의 적 타입
-        gold: CONFIG.startGold,     // 처치 자원
-        mineral: CONFIG.startMineral, // 채굴 자원 (소수점 누적, 표시 시 내림)
+        gold: CONFIG.startGold + b('start_gold'),       // 처치 자원
+        mineral: CONFIG.startMineral + b('start_mineral'), // 채굴 자원 (소수점 누적, 표시 시 내림)
+        enemyLimit: CONFIG.enemyLimit + b('enemy_limit'),   // 패배 기준 적 수
+        bossTime: CONFIG.bossTime + b('boss_time'),         // 보스 제한 시간
         mineLv: 0,                  // 채굴 강화 레벨
         kills: 0,
         speed: opts.speed || 1,
@@ -49,7 +60,7 @@ RD.GameLogic = (() => {
       this.G[cur] -= amt;
       return true;
     }
-    mineRate() { return RD.BAL.mineRate(this.G.mineLv); }
+    mineRate() { return RD.BAL.mineRate(this.G.mineLv) * this.mineMul; }
 
     // ── 알림 / 연출 데이터 ──
     toast(text, color) { this.toastQueue.push({ text, color: color || '#ffffff' }); }
@@ -67,7 +78,7 @@ RD.GameLogic = (() => {
       const r = G.round;
       G.roundTimer = CONFIG.roundTime;
       if (r > 1) {
-        const bonus = RD.BAL.roundGold(r);
+        const bonus = Math.round(RD.BAL.roundGold(r) * this.goldMul.round);
         G.gold += bonus;
         this.toast(`라운드 ${r}  ·  +${bonus} 골드`, '#ffe082');
       } else {
@@ -76,6 +87,9 @@ RD.GameLogic = (() => {
       G.etype = RD.roundEnemyType(r);     // 이번 라운드 적 타입 (상성)
       const ET = RD.ENEMY_TYPES[G.etype];
       this.toast(`${ET.name} 적 출현  ·  ${this.counterText(G.etype)}`, ET.color);
+      // 30 스테이지부터 10 스테이지마다 기억 파편 회수 알림 (실제 지급은 판이 끝날 때 RD.Meta.finishRun)
+      if (RD.Meta && r >= RD.META.fragmentMinRound && r % 10 === 0)
+        this.toast(`기억 파편 신호 감지  ·  지금 종료 시 +${RD.Meta.fragmentsFor(r, this.buffs).total}`, '#7dffb0');
       if (r % CONFIG.bossEvery === 0) {
         G.spawnLeft = 0;
         this.spawnBoss(r);
@@ -110,18 +124,21 @@ RD.GameLogic = (() => {
       const G = this.G, CONFIG = RD.CONFIG;
       const bt = RD.BOSSES[(r / CONFIG.bossEvery - 1) % RD.BOSSES.length];
       G.boss = this.makeEnemy(bt, Math.ceil(RD.BAL.bossHp(r) * (1 + (this.hpMult() - 1) * RD.BAL.bossDiffShare)), CONFIG.enemyBaseSpeed * 0.55, bt.size, true);
-      G.bossTimer = CONFIG.bossTime;
-      this.toast(`보스 등장! ${bt.name}  (${CONFIG.bossTime}초 안에 처치)`, '#ff6b6b');
+      G.bossTimer = G.bossTime;
+      this.toast(`보스 등장! ${bt.name}  (${G.bossTime}초 안에 처치)`, '#ff6b6b');
     }
 
     // ── 유닛 ──
     countType(id) { let c = 0; for (const u of this.G.units) if (u.type.id === id) c++; return c; }
     // 공격력 = 기본 공격력 + 공격력 계수 × 타입 강화 레벨 (Lv.0 은 타입이 없어 강화 영향 없음)
     //  히든 유닛은 여기에 히든 강화 배율을 곱함
+    //  히로인 카드: 전체 공격력 + 타입 공격력(히든은 히든 공격력) % 를 곱함
     unitDmg(t) {
       const d = t.dmg + (t.coef || 0) * (this.G.upg[t.cat] || 0);
-      return t.hidden ? d * RD.BAL.hiddenMult(this.G.hiddenLv) : d;
+      return t.hidden ? d * RD.BAL.hiddenMult(this.G.hiddenLv) * this.dmgMul.hidden : d * this.dmgMul[t.cat];
     }
+    // 공격 간격(초): 히로인 카드 공격 속도 % 반영
+    unitSpd(t) { return t.spd * this.spdMul; }
     freeCells() {
       const out = [], grid = this.G.grid;
       for (let r = 0; r < RD.GRID.rows; r++) for (let c = 0; c < RD.GRID.cols; c++) if (!grid[r][c]) out.push({ col: c, row: r });
@@ -289,9 +306,11 @@ RD.GameLogic = (() => {
       this.toast(`${name} 자동 조합 ${made.length}회  ·  최고 [${RD.GRADES[top.grade].name}] ${top.name}`, RD.unitTextColor(top));
       return made;
     }
+    // 판매가 (히로인 카드 판매 환급 % 반영)
+    sellPrice(t) { return Math.max(10, Math.floor(RD.sellPrice(t) * this.goldMul.sell / 10) * 10); }
     sell(u) {
       if (!u) return this.toast('유닛을 먼저 선택하세요', '#ff8a80');
-      const g = RD.sellPrice(u.type);
+      const g = this.sellPrice(u.type);
       this.G.gold += g;
       this.addFloat(u.x, u.y - 40, `+${fmt(g)}`, '#ffd54f', 30);
       this.removeUnit(u);
@@ -352,6 +371,7 @@ RD.GameLogic = (() => {
     // mult: 상성 배율 (데미지 숫자 색: 강함 주황 · 약함 회색)
     damage(e, dmg, show, mult) {
       if (e.dead) return;
+      if (e.boss) dmg *= this.bossMul;
       e.hp -= dmg;
       e.hitT = 0.08;
       if (show && RD.CONFIG.showDamage) {
@@ -364,7 +384,7 @@ RD.GameLogic = (() => {
       const G = this.G;
       e.dead = true;
       G.kills++;
-      const g = e.boss ? RD.BAL.bossGold(G.round) : RD.BAL.killGold(G.round);
+      const g = Math.round((e.boss ? RD.BAL.bossGold(G.round) : RD.BAL.killGold(G.round)) * this.goldMul.kill);
       G.gold += g;
       this.addFx({ k: 'pop', x: e.x, y: e.y, r: e.size * 1.8, color: e.type.color, life: 0.3 });
       if (e.boss) {
@@ -485,7 +505,7 @@ RD.GameLogic = (() => {
           const dx = e.x - u.x, dy = e.y - u.y, d = dx * dx + dy * dy;
           if (d <= r2 && d < bd) { bd = d; best = e; }
         }
-        if (best) { this.attack(u, best); u.cd = u.type.spd; }
+        if (best) { this.attack(u, best); u.cd = this.unitSpd(u.type); }
         else u.cd = 0.05;
       }
 
@@ -509,7 +529,7 @@ RD.GameLogic = (() => {
       G.floats = G.floats.filter(f => !f.dead);
 
       G.enemies = G.enemies.filter(e => !e.dead);
-      if (G.enemies.length >= CONFIG.enemyLimit) this.gameOver(`필드의 적이 ${CONFIG.enemyLimit}마리에 도달했습니다`);
+      if (G.enemies.length >= G.enemyLimit) this.gameOver(`필드의 적이 ${G.enemyLimit}마리에 도달했습니다`);
     }
   }
   return GameLogic;

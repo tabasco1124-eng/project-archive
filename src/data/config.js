@@ -103,16 +103,11 @@ RD.DIFFICULTIES = {
   hard:   { name: '하드', color: '#ff5252', desc: '숙련자용',      hpMult: r => 1.05 + 0.015 * Math.max(0, r - 20) },
 };
 RD.DIFF_KEYS = ['easy', 'normal', 'hard'];
-// 선택한 난이도 (판을 넘어 유지, localStorage. 저장이 막힌 환경에서는 그 판에서만 유지)
-RD.Difficulty = (() => {
-  const KEY = 'rd_difficulty_v1';
-  let cur = 'normal';
-  try { const v = localStorage.getItem(KEY); if (v && RD.DIFFICULTIES[v]) cur = v; } catch (e) { /* 무시 */ }
-  return {
-    get: () => cur,
-    set(k) { if (!RD.DIFFICULTIES[k]) return; cur = k; try { localStorage.setItem(KEY, k); } catch (e) { /* 무시 */ } },
-  };
-})();
+// 선택한 난이도 (판을 넘어 유지: RD.Save 저장 데이터. 저장이 막힌 환경에서는 그 세션에서만 유지)
+RD.Difficulty = {
+  get() { const k = RD.Save && RD.Save.data.difficulty; return RD.DIFFICULTIES[k] ? k : 'normal'; },
+  set(k) { if (!RD.DIFFICULTIES[k] || !RD.Save) return; RD.Save.data.difficulty = k; RD.Save.save(); },
+};
 
 /* 자원 종류. 재화가 늘어나면 여기에 추가하고 GameLogic.canAfford / spend 로 다룬다.
  *  gold    : 적 처치·라운드 보상으로 획득 → 유닛 소환, 채굴 강화, 타입 변경

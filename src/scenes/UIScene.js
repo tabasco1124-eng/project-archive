@@ -90,7 +90,18 @@ RD.UIScene = class UIScene extends Phaser.Scene {
       this.add.text(W / 2, 720, '일시정지', S(80, '#ffffff', 10)).setOrigin(0.5),
       this.add.text(W / 2, 820, '화면을 터치하면 계속합니다', S(32, '#d4c8ea', 0, 'normal')).setOrigin(0.5)]);
     this.pauseZone = this.add.zone(0, UI.hudH, W, UI.panelY - UI.hudH).setOrigin(0).setInteractive();
-    this.pauseZone.on('pointerup', () => { if (this.L.G.mode === 'paused' && !this.bookOpen) this.L.togglePause(); });
+    this.pauseZone.on('pointerup', p => {
+      if (this.L.G.mode === 'paused' && !this.bookOpen && !RD.util.inRect(p, UI.btnQuit)) { this.quitArmed = false; this.L.togglePause(); }
+    });
+    // 다이브 중단 (일시정지 중에만 보임): 두 번 눌러야 중단 → 게임 오버(기억 파편 정산) 화면
+    this.quitArmed = false;
+    this.btnQuit = new RD.UIButton(this, UI.btnQuit, { scheme: 'red', labelSize: 38, subSize: 22, onClick: () => {
+      const L = this.L;
+      if (L.G.mode !== 'paused' || this.bookOpen) return;
+      if (!this.quitArmed) { this.quitArmed = true; return; }
+      this.quitArmed = false;
+      L.gameOver('지휘관이 다이브를 중단했습니다');
+    } }).setDepth(41);
     // 히든 강화 잠김 안내 (히든 유닛을 처음 얻기 전)
     const hb = UI.btnHidden;
     this.hiddenHint = this.add.text(hb.x + hb.w / 2, hb.y + hb.h / 2, '히든 유닛을 만들면\n히든 강화 개방', S(22, '#7d7290', 0, 'normal')).setOrigin(0.5).setAlign('center');
@@ -231,7 +242,7 @@ RD.UIScene = class UIScene extends Phaser.Scene {
 
     // 적 수 바 / 보스 바
     const g = this.hudG; g.clear();
-    const n = G.enemies.length, lim = C.enemyLimit, ratio = U.clamp(n / lim, 0, 1);
+    const n = G.enemies.length, lim = G.enemyLimit, ratio = U.clamp(n / lim, 0, 1);
     const bx = 32, by = 116, bh = 64, bw = G.boss ? 500 : 1016;
     g.fillStyle(0x000000, 0.6).fillRoundedRect(bx, by, bw, bh, 18);
     if (ratio > 0) {
@@ -286,12 +297,13 @@ RD.UIScene = class UIScene extends Phaser.Scene {
       const cnt = L.countType(t.id);
       setText(this.sel.count, `보유 ${cnt}개`, L.canCombine(sel) ? '#69f0ae' : '#b9aecb');
       const dmg = L.unitDmg(t);
-      setText(this.sel.stats, `공격력 ${fmt(dmg)}   공속 ${t.spd}초   사거리 ${t.range}`);
+      const spd = L.unitSpd(t);
+      setText(this.sel.stats, `공격력 ${fmt(dmg)}   공속 ${+spd.toFixed(2)}초   사거리 ${t.range}`);
       const catName = (t.hidden ? '히든·' : '') + RD.CATEGORIES[t.cat].name;
       setText(this.sel.special, `[${catName}] ${U.specialText(t)}`, t.hidden ? RD.HIDDEN_COLOR : RD.CATEGORIES[t.cat].color);
       // 이번 라운드 적 타입에 대한 실제 DPS (상성 배율 반영, 강함 초록 · 약함 빨강)
       const m = RD.typeMult(t, G.etype);
-      setText(this.sel.dps, `DPS ${fmt(dmg / t.spd * m)}${m !== 1 ? ` ×${m}` : ''}`,
+      setText(this.sel.dps, `DPS ${fmt(dmg / spd * m)}${m !== 1 ? ` ×${m}` : ''}`,
         m > 1 ? '#69f0ae' : m < 1 ? '#ff8a80' : '#ffd54f');
     }
 
@@ -301,7 +313,7 @@ RD.UIScene = class UIScene extends Phaser.Scene {
     this.btn.combine.set('조합', !sel ? '유닛 선택' : recipe ? '히든 조합!' : merge ? `${Math.min(cnt, 3)} / 3 보유` : RD.recipesUsing(st).length ? '레시피 재료' : '최고 레벨',
       !!sel && L.canCombine(sel));
     const CC = RD.COST_CURRENCY, CUR = RD.CURRENCIES;
-    this.btn.sell.set('판매', sel ? `+${fmt(RD.sellPrice(st))} ${CUR.gold.name}` : '유닛 선택', !!sel);
+    this.btn.sell.set('판매', sel ? `+${fmt(L.sellPrice(st))} ${CUR.gold.name}` : '유닛 선택', !!sel);
     const canCh = st && RD.canTypeChange(st), chCost = canCh ? RD.typeChangeCost(st) : 0;
     this.btn.change.set('타입 변경', !sel ? '유닛 선택' : st.hidden ? '히든 불가' : canCh ? `${fmt(chCost)} ${CUR[CC.typeChange].name}` : `${RD.GRADES[RD.TYPE_CHANGE_MIN_GRADE].name} 이상`,
       !!canCh && L.canAfford(CC.typeChange, chCost));
@@ -339,6 +351,9 @@ RD.UIScene = class UIScene extends Phaser.Scene {
 
     // 일시정지 (도감을 연 동안은 도감이 대신 덮음)
     this.pauseLayer.setVisible(G.mode === 'paused' && !this.bookOpen);
+    this.btnQuit.setVisible(G.mode === 'paused' && !this.bookOpen);
+    if (G.mode !== 'paused') this.quitArmed = false;
+    this.btnQuit.set(this.quitArmed ? '정말 중단?' : '다이브 중단', this.quitArmed ? '한 번 더 누르면 종료' : '로비로 (파편 정산)', true);
     if (this.bookOpen) this.updateBook();
 
     // 알림
