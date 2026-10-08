@@ -70,12 +70,16 @@ RD.UIButton = class UIButton {
   // 실제 시간 기준 타이머: 프레임이 떨어져도(폰 과부하) 일정한 속도로 반복
   startHold() {
     this.stopHold(); this.repeated = false;
+    // 간격은 interval 에서 시작해 반복할수록 accel 배씩 줄어 minInterval 까지 빨라짐
+    const R = this.repeat;
+    let gap = R.interval;
     const tick = () => {
       this.holdTimer = null;
       if (!this.pressed || !this.onClick) return;
       this.repeated = true;
       if (!this.onClick()) return;
-      this.holdTimer = setTimeout(tick, this.repeat.interval);
+      this.holdTimer = setTimeout(tick, gap);
+      gap = Math.max(R.minInterval || gap, gap * (R.accel || 1));
     };
     this.holdTimer = setTimeout(tick, this.repeat.delay);
   }

@@ -61,7 +61,7 @@ RD.UIScene = class UIScene extends Phaser.Scene {
       change:  new RD.UIButton(this, UI.btnChange,  { scheme: 'change', labelSize: 42, onClick: act((L, G) => L.typeChange(G.selected)) }),
       book:    new RD.UIButton(this, UI.btnBook,    { scheme: 'book', labelSize: 34, onClick: act(() => this.openBook(), true) }),
       hidden:  new RD.UIButton(this, UI.btnHidden,  { scheme: 'hidden', labelSize: 32, subSize: 22, onClick: act(L => L.upgradeHidden()) }),
-      summon:  new RD.UIButton(this, UI.btnSummon,  { scheme: 'gold', big: true, repeat: { delay: 350, interval: 150 }, onClick: act(L => L.summon()) }),
+      summon:  new RD.UIButton(this, UI.btnSummon,  { scheme: 'gold', big: true, repeat: { delay: 250, interval: 70, accel: 0.85, minInterval: 25 }, onClick: act(L => L.summon()) }),
       pause:   new RD.UIButton(this, UI.btnPause,   { scheme: 'dark', onClick: act(L => L.togglePause(), true) }),
       speed:   new RD.UIButton(this, UI.btnSpeed,   { scheme: 'dark', labelSize: 40, onClick: act(L => { L.toggleSpeed(); this.registry.set('speed', L.G.speed); }, true) }),
     };
