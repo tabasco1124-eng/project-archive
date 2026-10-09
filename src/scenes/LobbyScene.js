@@ -75,6 +75,10 @@ RD.LobbyScene = class LobbyScene extends Phaser.Scene {
       `> 기억 파편 ${RD.META.capsuleCost}개 = 메모리 캡슐 1개`,
       '> 같은 히로인 5장마다 싱크율(레벨) 상승',
     ];
+    if (SV.stats.runs) this.messages.push(`> 누적 다이브 ${fmt(SV.stats.runs)}회. 포기를 모르는 지휘관입니다`);
+    // 이후로는 문구 풀(세계관 · 재치 · 팁)을 섞어서 돌림
+    const L = RD.LOBBY_LINES || {};
+    this.pool = [].concat(L.lore || [], L.witty || [], L.tip || []);
     this.msgIdx = 0;
     this.ticker = this.add.text(80, 1730, '', S(28, '#7dffb0', 0, 'normal')).setOrigin(0, 0.5);
     this.add.graphics().lineStyle(2, 0x7dffb0, 0.25).strokeRect(60, 1690, W - 120, 80);
@@ -155,6 +159,10 @@ RD.LobbyScene = class LobbyScene extends Phaser.Scene {
   }
 
   typeMessage() {
+    if (this.msgIdx >= this.messages.length && this.pool.length) {   // 다 보여 주면 풀을 새로 섞어서 처음부터
+      this.messages = Phaser.Utils.Array.Shuffle(this.pool.slice());
+      this.msgIdx = 0;
+    }
     const msg = this.messages[this.msgIdx % this.messages.length];
     this.msgIdx++;
     let n = 0;
