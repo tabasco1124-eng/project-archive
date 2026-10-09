@@ -22,6 +22,7 @@ RD.LobbyScene = class LobbyScene extends Phaser.Scene {
     const W = RD.W, S = RD.util.textStyle, fmt = RD.util.fmt, SV = RD.Save.data;
     this.modal = null;
     this.started = false;
+    RD.BGM.menu();                          // 타이틀에서 나오던 곡을 이어서 (전투에서 돌아오면 다음 곡)
     this.bg = RD.Neon.background(this, 1560, { dim: 0.55, bits: 30, bitAlpha: 0.35 });
 
     // ── 상단: 제목 + 기억 파편 ──

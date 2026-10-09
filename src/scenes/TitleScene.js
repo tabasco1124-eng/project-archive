@@ -66,7 +66,8 @@ RD.TitleScene = class TitleScene extends Phaser.Scene {
 
     // 아무 곳이나 터치 → 접속 메뉴 / Enter·Space → 메뉴, 메뉴에서 한 번 더 → 이어하기(또는 새 게임)
     this.menu = null;
-    this.input.once('pointerup', () => this.showMenu());
+    RD.BGM.menu();                  // 자동재생이 막히면 첫 터치 때 다시 시도됨
+    this.input.once('pointerup', () => { RD.BGM.menu(); this.showMenu(); });
     if (this.input.keyboard) this.input.keyboard.on('keydown', e => {
       if (e.key !== 'Enter' && e.key !== ' ') return;
       if (!this.menu) this.showMenu(); else this.connect();

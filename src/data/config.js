@@ -34,6 +34,8 @@ RD.BGM_TRACKS = [
   { from: 81, to: 99, url: 'assets/audio/bgm6_neon_game_loop6.mp3' },
   { from: 100, to: 120, url: 'assets/audio/bgm7_neon_game_loop7.mp3' },
 ];
+// 타이틀 · 로비 음악: 두 곡을 번갈아 반복 (타이틀 → 로비로 넘어가도 끊기지 않고 이어짐)
+RD.BGM_MENU = { list: ['assets/audio/menu1_neo_talk_lobby.mp3', 'assets/audio/menu2_neo_talk_lobby2.mp3'] };
 RD.BGM_VOLUME = 0.5;
 // 공격 효과음 전체 볼륨 (Web Audio, 0~1). 배경 음악이 잘 들리도록 낮게 유지
 RD.SFX_VOLUME = 0.35;
