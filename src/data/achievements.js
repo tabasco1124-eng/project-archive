@@ -41,9 +41,9 @@ RD.ACH_CATS = {
     add('combat', 'runs' + n, ['반복 다이브', '숙련된 지휘관'][i], `다이브 ${n}회 완료`, S => S.st.runs, n, rw));
   // 유닛
   add('unit', 'grade5', '최고 등급 소환', '일반 유닛 Lv.5 만들기', S => S.st.topGrade, 5, 50);
-  add('unit', 'hidden1', '숨겨진 레시피', '히든 유닛 처음 만들기', S => S.cx.made.length, 1, 80);
-  add('unit', 'hidden7', '레시피 연구가', '히든 유닛 7종 발견', S => S.cx.made.length, 7, 150);
-  add('unit', 'hiddenAll', '완전한 도감', () => `히든 유닛 ${RD.RECIPES.length}종 모두 발견`, S => S.cx.made.length, () => RD.RECIPES.length, 300);
+  add('unit', 'hidden1', '숨겨진 레시피', '레거시 유닛 처음 만들기', S => S.cx.made.length, 1, 80);
+  add('unit', 'hidden7', '레시피 연구가', '레거시 유닛 7종 발견', S => S.cx.made.length, 7, 150);
+  add('unit', 'hiddenAll', '완전한 도감', () => `레거시 유닛 ${RD.RECIPES.length}종 모두 발견`, S => S.cx.made.length, () => RD.RECIPES.length, 300);
   // 기억 (메모리 캡슐 / 히로인 카드)
   [[1, 20], [50, 100], [200, 300]].forEach(([n, rw], i) =>
     add('memory', 'open' + n, ['첫 번째 해독', '기억 복원가', '아카이브 관리자'][i], `메모리 캡슐 ${n}개 해독`, S => S.m.opened, n, rw));

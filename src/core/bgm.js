@@ -3,6 +3,7 @@
  *  - 라운드 구간(RD.BGM_TRACKS)에 맞는 트랙을 반복 재생, 구간이 바뀌면 페이드 전환
  *  - 타이틀 · 로비는 RD.BGM_MENU 의 곡들을 번갈아 재생 (menu())
  *  - 특별 보스(RD.SPECIAL_BOSSES)가 살아 있는 동안은 그 보스 곡 (setRound 의 override)
+ *  - playOnce(url): 이벤트 곡을 한 번만 틀고, 끝나면 원래 곡으로 돌아감 (레거시 첫 획득 연출)
  *  - 일시정지 / 게임 오버 / 탭 숨김 시 멈춤
  *  - 모바일 자동재생 제한: 첫 터치(다이브 버튼 등) 안에서 play() 해야 하므로
  *    play 가 거부되면 다음 터치 때 다시 시도
@@ -17,6 +18,7 @@ RD.BGM = (() => {
   let el = null, cur = null, want = null, paused = false, vol = 0, fadeTimer = null, blocked = false;
   let gain = null;                  // Web Audio 경로일 때 볼륨 노드
   let listIdx = 0;                  // 플레이리스트(타이틀 · 로비 음악)에서 지금 곡 번호
+  let once = null, base = null;     // 한 번만 트는 이벤트 곡 / 그동안 원래 나와야 할 곡
 
   function audio() {
     if (!el) {
@@ -25,7 +27,10 @@ RD.BGM = (() => {
       el.preload = 'auto';
       el.volume = 0;
       // 플레이리스트는 한 곡이 끝나면 다음 곡으로 (단일 트랙은 loop 로 반복)
+      const endOnce = () => { if (cur && cur.once) { once = null; want = base; apply(); } };
+      el.addEventListener('error', () => { if (cur && cur.once) endOnce(); });
       el.addEventListener('ended', () => {
+        if (cur && cur.once) return endOnce();
         if (!cur || !cur.list) return;
         listIdx = (listIdx + 1) % cur.list.length;
         el.src = (RD.BGM_BASE || '') + cur.list[listIdx];
@@ -92,7 +97,7 @@ RD.BGM = (() => {
       const swap = () => {
         cur = next;
         if (!next) { a.pause(); return; }
-        a.loop = !next.list;
+        a.loop = !next.list && !next.once;
         a.src = (RD.BGM_BASE || '') + (next.list ? next.list[listIdx % next.list.length] : next.url);
         a.currentTime = 0;
         if (!paused) { tryPlay(); fadeTo(RD.BGM_VOLUME); }
@@ -118,17 +123,22 @@ RD.BGM = (() => {
     // 라운드에 맞는 트랙으로 (같은 트랙이면 그대로 이어서 재생)
     // override: 특별 보스처럼 잠깐 다른 곡을 틀 때 그 곡 주소 (없어지면 라운드 곡으로 돌아감)
     setRound(round, override) {
-      const t = override ? overrideTrack(override) : trackFor(round);
+      base = override ? overrideTrack(override) : trackFor(round);
+      const t = once || base;
       if (t !== want) { want = t; apply(); }
     },
     setPaused(p) { if (p !== paused) { paused = p; apply(); } },
     // 다이브 버튼처럼 사용자 입력 안에서 호출 → 모바일에서도 재생 허용
-    start(round) { paused = false; want = trackFor(round || 0); apply(); },
-    stop() { want = null; apply(); },
+    start(round) { paused = false; once = null; want = base = trackFor(round || 0); apply(); },
+    stop() { once = null; want = null; apply(); },
+    // 이벤트 곡 한 번 재생 → 끝나면 setRound 로 정해진 원래 곡으로
+    playOnce(url) { once = { url, once: true }; want = once; apply(); },
+    stopOnce() { if (once) { once = null; want = base; apply(); } },
+    get onceActive() { return !!once; },
     // 타이틀 · 로비 음악 (이미 나오고 있으면 그대로 이어서). 들어올 때마다 다음 곡부터
     menu() {
       if (!RD.BGM_MENU) return;
-      paused = false;
+      paused = false; once = null;
       if (want !== RD.BGM_MENU) { if (cur !== RD.BGM_MENU) listIdx = cur ? listIdx + 1 : 0; want = RD.BGM_MENU; }
       apply();
     },

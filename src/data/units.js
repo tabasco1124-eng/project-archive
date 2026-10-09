@@ -4,7 +4,7 @@
  *   dmg(기본 공격력), coef(타입 강화 1단계당 공격력 증가량 = dmg/5, Lv.0 은 0), spd(공격 간격 초), range(px), fx(공격 연출)
  *   조합 규칙 (일반 조합: 같은 유닛 3개)
  *     LvN ×3 → Lv.N+1 중 무작위 (모든 레벨에서 타입도 무작위: 워리어/아처/위저드 각 1/3). Lv.5 가 일반 유닛의 최고 레벨
- *   히든 유닛 (hidden: true, Lv.5~8): RD.RECIPES 의 정해진 재료 3개로만 만든다 (아래 '히든 레시피')
+ *   히든 유닛 (hidden: true, Lv.5~8): RD.RECIPES 의 정해진 재료 3개로만 만든다 (아래 '레거시 레시피')
  *     cat 은 주 타입(그 타입 강화 적용), 여기에 히든 강화 배율(RD.BAL.hiddenMult)이 추가로 곱해짐
  *   선택: sfx(공격 효과음 묶음 이름, 생략 시 fx 로 결정: src/core/sfx.js SETS), splash(광역 반경), slow(감속 비율 0~1), slowDur, stun(기절 확률), stunDur
  *         color(몸통색), pcolor(투사체/이펙트 색)
@@ -28,6 +28,12 @@ RD.GRADES = [
 ];
 RD.MAX_NORMAL_GRADE = 5;          // 일반 조합으로 만들 수 있는 최고 레벨
 RD.TYPE_CHANGE_MIN_GRADE = 2;     // 타입 변경이 가능한 최저 레벨
+// 레거시(히든) 유닛을 그 레벨에서 이번 다이브 처음 얻을 때의 연출 (레벨별 슬롯, Lv.6·7 곡은 추후 추가)
+//  bgm 한 번 재생 후 원래 곡으로 복귀 · 화면 진동 · theme 맵으로 바뀌었다가 곡이 끝나면 원래 맵 · 상단 멘트
+RD.LEGACY_EVENTS = {
+  5: { bgm: 'assets/audio/legacy5_jeonyul.mp3', theme: 'legacy5', maxSec: 200,
+       title: '봉인 해제 · 인류의 레거시 각성', sub: '그랜드 아카이브 심층 기억이 전장을 다시 씁니다' },
+};
 RD.HIDDEN_COLOR = '#ff6bf0';      // 히든 유닛 대표 색 (글자 등 고정 색이 필요한 곳). 테두리·마법진은 무지개
 
 RD.CATEGORIES = {
@@ -202,7 +208,7 @@ RD.canMerge = t => !t.hidden && t.grade < RD.MAX_NORMAL_GRADE;
 // 표시 색: 히든은 무지개(글자 등 고정 색은 HIDDEN_COLOR), 그 외는 레벨 색
 RD.unitColorStr = t => t.hidden ? 'rainbow' : RD.GRADES[t.grade].color;
 RD.unitTextColor = t => t.hidden ? RD.HIDDEN_COLOR : RD.GRADES[t.grade].color;
-RD.unitLevelName = t => (t.hidden ? '히든 ' : '') + RD.GRADES[t.grade].name;
+RD.unitLevelName = t => (t.hidden ? '레거시 ' : '') + RD.GRADES[t.grade].name;
 // 이 유닛이 재료로 들어가는 히든 레시피들
 RD.recipesUsing = t => RD.RECIPES.filter(r => r.needs.includes(t.id));
 

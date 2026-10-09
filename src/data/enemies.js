@@ -55,11 +55,11 @@ RD.PACKET = {
 };
 
 // 특별 보스: 라운드 번호 → 강화 설정 (그 라운드 보스에만 적용, 다른 보스는 그대로)
-//  hpMul 체력 배율, extraTime 제한 시간 추가(초), bgm 등장~처치까지 나오는 곡,
+//  hpMul 체력 배율, extraTime 제한 시간 추가(초), bgm(선택) 등장~처치까지 나오는 곡,
 //  rewardGrade 처치 보상 랜덤 유닛 레벨 (칸이 없으면 패킷 보상처럼 대기), lines 등장 멘트
 RD.SPECIAL_BOSSES = {
   60: {
-    hpMul: 1.2, extraTime: 10, bgm: 'assets/audio/boss60_jeonyul.mp3', rewardGrade: 4,
+    hpMul: 1.2, extraTime: 10, rewardGrade: 4,
     lines: ['경고: 네메시스 방화벽 심층부 개방', '네메시스가 수문장을 직접 깨웠습니다. 전력을 다해 막으세요!'],
   },
 };

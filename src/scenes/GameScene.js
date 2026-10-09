@@ -99,11 +99,44 @@ RD.GameScene = class GameScene extends Phaser.Scene {
     if (this.dragGhost) { this.viewDestroy(this.dragGhost); this.dragGhost = null; }
   }
 
+  // ── 레거시 첫 획득 연출: 곡 한 번 + 화면 진동 + 맵 테마 변경 + 상단 멘트 ──
+  startLegacyEvent(ev) {
+    if (this.legacyEv) this.endLegacyEvent(true);
+    this.legacyEv = { ev, t: 0 };
+    if (ev.bgm) RD.BGM.playOnce(ev.bgm);
+    const cam = this.cameras.main;
+    cam.shake(1000, 0.018);
+    cam.flash(350, 255, 190, 90);
+    if (ev.theme) {
+      // 맵 텍스처는 처음 쓸 때 한 번만 그림 (가벼운 이미지 1장 교체, 셰이더 효과 없음)
+      const img = this.add.image(0, 0, RD.Textures.mapTexture(this, ev.theme)).setOrigin(0).setDepth(0.5).setAlpha(0);
+      this.tweens.add({ targets: img, alpha: 1, duration: 600, ease: 'Sine.easeOut' });
+      this.legacyEv.img = img;
+    }
+    const ui = this.scene.get('UIScene');
+    if (ui && ui.showBanner) ui.showBanner(ev.title, ev.sub);
+  }
+  endLegacyEvent(instant) {
+    const e = this.legacyEv; if (!e) return;
+    this.legacyEv = null;
+    if (RD.BGM.onceActive) RD.BGM.stopOnce();
+    if (e.img) {
+      if (instant) e.img.destroy();
+      else this.tweens.add({ targets: e.img, alpha: 0, duration: 1500, ease: 'Sine.easeIn', onComplete: () => e.img.destroy() });
+    }
+  }
+
   // ── 메인 루프 ──
   update(time, delta) {
     const dt = Math.min(0.05, delta / 1000), L = this.logic, G = L.G;
     if (G.mode === 'playing') for (let i = 0; i < G.speed && G.mode === 'playing'; i++) L.update(dt);
     if (L.shakeReq) { L.shakeReq = 0; this.cameras.main.shake(600, 0.012); }   // 패킷 등장·처치 흔들림
+    // 레거시 첫 획득 연출: 곡이 끝나면(또는 maxSec 이 지나면) 맵을 원래대로
+    if (L.eventReq) { const ev = L.eventReq; L.eventReq = null; this.startLegacyEvent(ev); }
+    if (this.legacyEv && G.mode === 'playing') {
+      this.legacyEv.t += delta / 1000;
+      if (!RD.BGM.onceActive || this.legacyEv.t > this.legacyEv.ev.maxSec) this.endLegacyEvent();
+    }
     // 배경 음악: 라운드 구간별 트랙, 일시정지/게임 오버 시 멈춤
     if (G.mode === 'over') RD.BGM.stop();
     else { RD.BGM.setRound(G.round, G.boss && G.boss.special && G.boss.special.bgm); RD.BGM.setPaused(G.mode === 'paused'); }

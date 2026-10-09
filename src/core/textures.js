@@ -39,15 +39,23 @@ RD.Textures = (() => {
   // ── 맵 배경: 타이틀 화면과 같은 사이버 네온 그리드 스타일 (에셋 미사용, 캔버스로 직접 그림) ──
   //  경로 = 네온 테두리의 데이터 도로(타일 구분선 + 마젠타 중앙 점선 + 진행 방향 화살표)
   //  배치 칸 = 시안 테두리 + 모서리 브래킷 홀로 타일 / 하단 패널 = 시안·마젠타 네온 라인
-  function makeBackground(scene) {
+  //  theme: MAP_THEMES 의 이름 (레거시 연출 때 바뀌는 맵). 기본은 'base' = 'bg_map'
+  const MAP_THEMES = {
+    base:    { CY: '0,229,255', MG: '255,43,214', VI: '124,77,255', bg: ['#0a0618', '#070513', '#050409'], road: ['#120b2c', '#0d0820'], core: '60,30,120', grid: '58,42,122' },
+    // 레거시 Lv.5 각성: 금빛 · 진홍 데이터 도로
+    legacy5: { CY: '255,196,64', MG: '255,40,80', VI: '255,120,60', bg: ['#1a0808', '#120506', '#070304'], road: ['#2a0e10', '#1c080a'], core: '140,40,30', grid: '122,52,42' },
+  };
+  function makeBackground(scene, theme) {
+    theme = MAP_THEMES[theme] ? theme : 'base';
+    const key = theme === 'base' ? 'bg_map' : 'bg_map_' + theme, T = MAP_THEMES[theme];
     const W = RD.W, H = RD.H, P = RD.PATH, PW = RD.PW, PH = RD.PH, UI = RD.UI, GRID = RD.GRID;
-    const CY = '0,229,255', MG = '255,43,214', VI = '124,77,255';
-    canvasTex(scene, 'bg_map', W, H, c => {
+    const { CY, MG, VI } = T;
+    return canvasTex(scene, key, W, H, c => {
       let g = c.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, '#0a0618'); g.addColorStop(0.65, '#070513'); g.addColorStop(1, '#050409');
+      g.addColorStop(0, T.bg[0]); g.addColorStop(0.65, T.bg[1]); g.addColorStop(1, T.bg[2]);
       c.fillStyle = g; c.fillRect(0, 0, W, H);
       // 바탕 그리드 (타이틀 상단 그리드와 같은 90px 간격)
-      c.lineWidth = 1; c.strokeStyle = 'rgba(58,42,122,0.35)';
+      c.lineWidth = 1; c.strokeStyle = `rgba(${T.grid},0.35)`;
       c.beginPath();
       for (let x = 0; x <= W; x += 90) { c.moveTo(x + 0.5, 0); c.lineTo(x + 0.5, UI.panelY); }
       for (let y = 0; y <= UI.panelY; y += 90) { c.moveTo(0, y + 0.5); c.lineTo(W, y + 0.5); }
@@ -65,7 +73,7 @@ RD.Textures = (() => {
       c.save();
       c.beginPath(); c.rect(ox, oy, ow, oh); c.rect(ix, iy, iw, ih);
       g = c.createLinearGradient(0, oy, 0, oy + oh);
-      g.addColorStop(0, '#120b2c'); g.addColorStop(1, '#0d0820');
+      g.addColorStop(0, T.road[0]); g.addColorStop(1, T.road[1]);
       c.fillStyle = g; c.fill('evenodd');
       c.clip('evenodd');
       // 경로 타일 구분선 (경로 폭 간격)
@@ -111,7 +119,7 @@ RD.Textures = (() => {
 
       // 안쪽 결계 (유닛 배치 영역)
       g = c.createRadialGradient(W / 2, (P.t + P.b) / 2, 60, W / 2, (P.t + P.b) / 2, 620);
-      g.addColorStop(0, 'rgba(60,30,120,0.35)'); g.addColorStop(1, 'rgba(10,6,24,0)');
+      g.addColorStop(0, `rgba(${T.core},0.35)`); g.addColorStop(1, 'rgba(10,6,24,0)');
       c.fillStyle = g; c.fillRect(ix, iy, iw, ih);
       // 배치 칸: 홀로 타일
       const k = 14;
@@ -137,7 +145,7 @@ RD.Textures = (() => {
       g = c.createLinearGradient(0, UI.panelY, 0, H);
       g.addColorStop(0, '#0b0f24'); g.addColorStop(1, '#050409');
       c.fillStyle = g; c.fillRect(0, UI.panelY, W, H - UI.panelY);
-      c.strokeStyle = 'rgba(58,42,122,0.25)'; c.lineWidth = 1; c.beginPath();
+      c.strokeStyle = `rgba(${T.grid},0.25)`; c.lineWidth = 1; c.beginPath();
       for (let x = 0; x <= W; x += 90) { c.moveTo(x + 0.5, UI.panelY); c.lineTo(x + 0.5, H); }
       c.stroke();
       c.save(); c.shadowColor = `rgb(${CY})`; c.shadowBlur = 16;
@@ -379,5 +387,5 @@ RD.Textures = (() => {
     return scene.add.sprite(0, 0, 'enemy_' + type.id);
   }
 
-  return { UNIT_R, UNIT_RL, generateAll, orb, button, buttonShadow, unitBody, enemySprite, SCHEMES };
+  return { UNIT_R, UNIT_RL, generateAll, orb, button, buttonShadow, unitBody, enemySprite, SCHEMES, mapTexture: makeBackground };
 })();

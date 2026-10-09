@@ -106,7 +106,7 @@ RD.UIScene = class UIScene extends Phaser.Scene {
     } }).setDepth(41);
     // 히든 강화 잠김 안내 (히든 유닛을 처음 얻기 전)
     const hb = UI.btnHidden;
-    this.hiddenHint = this.add.text(hb.x + hb.w / 2, hb.y + hb.h / 2, '히든 유닛을 만들면\n히든 강화 개방', S(22, '#7d7290', 0, 'normal')).setOrigin(0.5).setAlign('center');
+    this.hiddenHint = this.add.text(hb.x + hb.w / 2, hb.y + hb.h / 2, '레거시 유닛을 만들면\n레거시 강화 개방', S(22, '#7d7290', 0, 'normal')).setOrigin(0.5).setAlign('center');
 
     this.buildBook();
 
@@ -153,7 +153,7 @@ RD.UIScene = class UIScene extends Phaser.Scene {
     // 도감을 연 동안 아래(필드·버튼) 터치 차단
     const block = this.add.zone(0, 0, RD.W, RD.H).setOrigin(0).setInteractive().setDepth(D);
     items.push(g, block);
-    this.bookTitle = this.add.text(RD.W / 2, B.y + 64, '히든 레시피 도감', S(52, RD.HIDDEN_COLOR, 8)).setOrigin(0.5).setDepth(D);
+    this.bookTitle = this.add.text(RD.W / 2, B.y + 64, '레거시 레시피 도감', S(52, RD.HIDDEN_COLOR, 8)).setOrigin(0.5).setDepth(D);
     this.bookSub = this.add.text(RD.W / 2, B.y + 118, '', S(26, '#b9aecb', 0, 'normal')).setOrigin(0.5).setDepth(D);
     items.push(this.bookTitle, this.bookSub);
     this.bookRows = RD.RECIPES.map((rc, i) => {
@@ -207,13 +207,13 @@ RD.UIScene = class UIScene extends Phaser.Scene {
         const n = RD.UNIT_BY_ID[id], k = (used[id] = (used[id] || 0) + 1);
         const own = (have[id] || 0) >= k, known = RD.Codex.seen(id);
         const lv = RD.unitLevelName(n), hint = n.hidden ? lv : `${lv} ${RD.CATEGORIES[n.cat].name}`;
-        setText(row.parts[j], `${j ? '+ ' : ''}${known ? `${n.name} ${n.hidden ? '(히든)' : lv}` : `??? (${hint})`}`,
+        setText(row.parts[j], `${j ? '+ ' : ''}${known ? `${n.name} ${n.hidden ? '(레거시)' : lv}` : `??? (${hint})`}`,
           own ? '#69f0ae' : known ? '#e6dcf5' : '#7d7290');
       });
       const ready = !!L.recipeUnits(rc);
       row.btn.set('조합', '', ready);
     }
-    setText(this.bookSub, `발견한 히든 유닛 ${found} / ${RD.RECIPES.length}   ·   초록색 = 지금 필드에 있는 재료`);
+    setText(this.bookSub, `발견한 레거시 유닛 ${found} / ${RD.RECIPES.length}   ·   초록색 = 지금 필드에 있는 재료`);
   }
 
   showToast(text, color) {
@@ -227,6 +227,23 @@ RD.UIScene = class UIScene extends Phaser.Scene {
     const c = this.add.container(RD.W / 2, 600, [g, t]).setDepth(60);
     this.toasts.push({ c, t: 0 });
     if (this.toasts.length > 3) this.toasts.shift().c.destroy();
+  }
+
+  // 화면 상단 강조 멘트 (나타났다가 몇 초 뒤 사라짐) — 레거시 첫 획득 연출 등
+  showBanner(title, sub) {
+    if (this.banner) this.banner.destroy();
+    const W = RD.W, S = RD.util.textStyle, y = RD.UI.hudH + 150;
+    const g = this.add.graphics();
+    g.fillStyle(0x0a0304, 0.82).fillRect(0, -95, W, 190);
+    g.fillStyle(0xffc440, 1).fillRect(0, -95, W, 4).fillRect(0, 91, W, 4);
+    g.fillStyle(0xff2850, 0.7).fillRect(0, -85, W, 2).fillRect(0, 83, W, 2);
+    const t1 = this.add.text(W / 2, -26, title, S(54, '#ffd36b', 8)).setOrigin(0.5).setShadow(0, 0, '#ff2850', 18, false, true);
+    const t2 = this.add.text(W / 2, 46, sub || '', S(30, '#ffe9c4', 5, 'normal')).setOrigin(0.5);
+    const c = this.banner = this.add.container(W / 2, y, [g, t1, t2]).setDepth(70).setAlpha(0);
+    g.x = -W / 2; t1.x = 0; t2.x = 0;
+    c.setScale(1, 0.2);
+    this.tweens.add({ targets: c, alpha: 1, scaleY: 1, duration: 380, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: c, alpha: 0, delay: 4200, duration: 700, ease: 'Sine.easeIn', onComplete: () => { c.destroy(); if (this.banner === c) this.banner = null; } });
   }
 
   update(time, delta) {
@@ -307,7 +324,7 @@ RD.UIScene = class UIScene extends Phaser.Scene {
       const dmg = L.unitDmg(t);
       const spd = L.unitSpd(t);
       setText(this.sel.stats, `공격력 ${fmt(dmg)}   공속 ${+spd.toFixed(2)}초   사거리 ${t.range}`);
-      const catName = (t.hidden ? '히든·' : '') + RD.CATEGORIES[t.cat].name;
+      const catName = (t.hidden ? '레거시·' : '') + RD.CATEGORIES[t.cat].name;
       setText(this.sel.special, `[${catName}] ${U.specialText(t)}`, t.hidden ? RD.HIDDEN_COLOR : RD.CATEGORIES[t.cat].color);
       // 이번 라운드 적 타입에 대한 실제 DPS (상성 배율 반영, 강함 초록 · 약함 빨강)
       const m = RD.typeMult(t, G.etype);
@@ -318,12 +335,12 @@ RD.UIScene = class UIScene extends Phaser.Scene {
     // 버튼 상태
     const st = sel && sel.type, cnt = sel ? L.countType(st.id) : 0;
     const merge = st && RD.canMerge(st), recipe = sel && !(merge && cnt >= 3) && L.readyRecipeFor(sel);
-    this.btn.combine.set('조합', !sel ? '유닛 선택' : recipe ? '히든 조합!' : merge ? `${Math.min(cnt, 3)} / 3 보유` : RD.recipesUsing(st).length ? '레시피 재료' : '최고 레벨',
+    this.btn.combine.set('조합', !sel ? '유닛 선택' : recipe ? '레거시 조합!' : merge ? `${Math.min(cnt, 3)} / 3 보유` : RD.recipesUsing(st).length ? '레시피 재료' : '최고 레벨',
       !!sel && L.canCombine(sel));
     const CC = RD.COST_CURRENCY, CUR = RD.CURRENCIES;
     this.btn.sell.set('판매', sel ? `+${fmt(L.sellPrice(st))} ${CUR.gold.name}` : '유닛 선택', !!sel);
     const canCh = st && RD.canTypeChange(st), chCost = canCh ? RD.typeChangeCost(st) : 0;
-    this.btn.change.set('타입 변경', !sel ? '유닛 선택' : st.hidden ? '히든 불가' : canCh ? `${fmt(chCost)} ${CUR[CC.typeChange].name}` : `${RD.GRADES[RD.TYPE_CHANGE_MIN_GRADE].name} 이상`,
+    this.btn.change.set('타입 변경', !sel ? '유닛 선택' : st.hidden ? '레거시 불가' : canCh ? `${fmt(chCost)} ${CUR[CC.typeChange].name}` : `${RD.GRADES[RD.TYPE_CHANGE_MIN_GRADE].name} 이상`,
       !!canCh && L.canAfford(CC.typeChange, chCost));
     this.btn.summon.set('소환', `${C.summonCost} ${CUR[CC.summon].name}`, L.canAfford(CC.summon, C.summonCost) && G.units.length < RD.UNIT_CAP);
     this.btn.book.set('레시피 도감', '', true);
@@ -331,7 +348,7 @@ RD.UIScene = class UIScene extends Phaser.Scene {
     this.hiddenHint.setVisible(!G.hiddenUnlocked);
     if (G.hiddenUnlocked) {
       const hc = RD.BAL.hiddenUpgradeCost(G.hiddenLv);
-      this.btn.hidden.set(`히든 강화 ×${U.fmt1(RD.BAL.hiddenMult(G.hiddenLv))}`, `Lv.${G.hiddenLv} · ${fmt(hc)}${CUR[CC.hiddenUpgrade].name}`, L.canAfford(CC.hiddenUpgrade, hc));
+      this.btn.hidden.set(`레거시 강화 ×${U.fmt1(RD.BAL.hiddenMult(G.hiddenLv))}`, `Lv.${G.hiddenLv} · ${fmt(hc)}${CUR[CC.hiddenUpgrade].name}`, L.canAfford(CC.hiddenUpgrade, hc));
     }
     RD.CAT_KEYS.forEach((k, i) => {
       const lv = G.upg[k], cost = RD.BAL.upgradeCost(lv);
@@ -350,7 +367,7 @@ RD.UIScene = class UIScene extends Phaser.Scene {
         for (const c of ch.chips) {
           const hid = c.gr === 'H', v = hid ? lc.hidden : n[c.gr];
           ch.g.fillStyle(U.colorInt(hid ? RD.HIDDEN_COLOR : RD.GRADES[c.gr].color), v ? 1 : 0.35).fillRoundedRect(c.x, ch.cy - 16, c.w, 32, 10);
-          setText(c.t, k === 'none' ? `${hid ? '히든' : 'Lv0'} ×${v}` : `${v}`, v ? '#140c1c' : '#3a3046');
+          setText(c.t, k === 'none' ? `${hid ? '레거시' : 'Lv0'} ×${v}` : `${v}`, v ? '#140c1c' : '#3a3046');
         }
       }
     });

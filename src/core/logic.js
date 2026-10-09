@@ -50,6 +50,7 @@ RD.GameLogic = (() => {
         packet: null, packetTimer: 0,   // 이벤트 몬스터 패킷 (RD.PACKET)
         packetKills: 0,                 // 이번 판 패킷 처치 수 → 보상 레벨
         packetRewards: [],              // 칸이 없어 아직 못 놓은 보상 유닛
+        legacyEvents: {},               // 레벨별 레거시 첫 획득 연출을 이미 했는지 (RD.LEGACY_EVENTS)
         overReason: '',
         uid: 1,
       };
@@ -212,7 +213,12 @@ RD.GameLogic = (() => {
       if (!type.hidden && type.grade > G.topGrade) G.topGrade = type.grade;
       if (type.hidden && !G.hiddenUnlocked) {
         G.hiddenUnlocked = true;
-        this.toast('히든 강화가 열렸습니다!', RD.HIDDEN_COLOR);
+        this.toast('레거시 강화가 열렸습니다!', RD.HIDDEN_COLOR);
+      }
+      const ev = type.hidden && RD.LEGACY_EVENTS && RD.LEGACY_EVENTS[type.grade];
+      if (ev && !G.legacyEvents[type.grade]) {   // 이번 다이브에서 이 레벨 레거시를 처음 얻음 → GameScene 이 연출
+        G.legacyEvents[type.grade] = true;
+        this.eventReq = ev;
       }
       return u;
     }
@@ -261,7 +267,7 @@ RD.GameLogic = (() => {
       if (same.length < 2) {
         const rc = this.readyRecipeFor(u);
         if (rc) return this.craft(rc, u);
-        if (!RD.canMerge(t)) return this.toast(RD.recipesUsing(t).length ? '히든 레시피 재료가 부족합니다 (레시피 도감 참고)' : '더 이상 조합할 수 없습니다', '#ff8a80');
+        if (!RD.canMerge(t)) return this.toast(RD.recipesUsing(t).length ? '레거시 레시피 재료가 부족합니다 (레시피 도감 참고)' : '더 이상 조합할 수 없습니다', '#ff8a80');
         return this.toast(`같은 ${t.name} 3개가 필요합니다`, '#ff8a80');
       }
       const { col, row } = u;
@@ -307,7 +313,7 @@ RD.GameLogic = (() => {
       G.selected = nu;
       this.addFx({ k: 'combine', x: nu.x, y: nu.y, r: 130, color: 'rainbow', life: 1.0 });
       this.addFx({ k: 'ring', x: nu.x, y: nu.y, r: 70, color: '#ffffff', life: 0.6 });
-      this.toast(`${first ? '히든 발견! ' : '히든 조합!  '}[${RD.unitLevelName(nt)}] ${nt.name}`, RD.HIDDEN_COLOR);
+      this.toast(`${first ? '레거시 발견! ' : '레거시 조합!  '}[${RD.unitLevelName(nt)}] ${nt.name}`, RD.HIDDEN_COLOR);
       return nu;
     }
     // 타입별 레벨 보유 수: { none:[n0], warrior:[n0,n1,n2,n3], ... }
@@ -367,7 +373,7 @@ RD.GameLogic = (() => {
     typeChange(u) {
       if (!u) return this.toast('유닛을 먼저 선택하세요', '#ff8a80');
       const t = u.type;
-      if (t.hidden) return this.toast('히든 유닛은 타입을 바꿀 수 없습니다', '#ff8a80');
+      if (t.hidden) return this.toast('레거시 유닛은 타입을 바꿀 수 없습니다', '#ff8a80');
       if (!RD.canTypeChange(t)) return this.toast(`타입 변경은 ${RD.GRADES[RD.TYPE_CHANGE_MIN_GRADE].name} 이상부터 가능합니다`, '#ff8a80');
       if (!this.spend(RD.COST_CURRENCY.typeChange, RD.typeChangeCost(t))) return;
       const nt = RD.pickTypeChange(t);
@@ -382,10 +388,10 @@ RD.GameLogic = (() => {
     }
     upgradeHidden() {
       const G = this.G;
-      if (!G.hiddenUnlocked) return this.toast('히든 유닛을 얻으면 열립니다', '#ff8a80');
+      if (!G.hiddenUnlocked) return this.toast('레거시 유닛을 얻으면 열립니다', '#ff8a80');
       if (!this.spend(RD.COST_CURRENCY.hiddenUpgrade, RD.BAL.hiddenUpgradeCost(G.hiddenLv))) return;
       G.hiddenLv++;
-      this.toast(`히든 강화 Lv.${G.hiddenLv}  (히든 유닛 공격력 ×${RD.util.fmt1(RD.BAL.hiddenMult(G.hiddenLv))})`, RD.HIDDEN_COLOR);
+      this.toast(`레거시 강화 Lv.${G.hiddenLv}  (레거시 유닛 공격력 ×${RD.util.fmt1(RD.BAL.hiddenMult(G.hiddenLv))})`, RD.HIDDEN_COLOR);
     }
     upgrade(cat) {
       const G = this.G, lv = G.upg[cat], cost = RD.BAL.upgradeCost(lv);

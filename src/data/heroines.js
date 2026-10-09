@@ -33,7 +33,7 @@ RD.CARD_STATS = {
   dmg_warrior:   { name: '워리어 공격력',    unit: '%',  base: 4,   cap: 50 },
   dmg_archer:    { name: '아처 공격력',      unit: '%',  base: 4,   cap: 50 },
   dmg_wizard:    { name: '위저드 공격력',    unit: '%',  base: 4,   cap: 50 },
-  dmg_hidden:    { name: '히든 유닛 공격력', unit: '%',  base: 5,   cap: 50 },
+  dmg_hidden:    { name: '레거시 유닛 공격력', unit: '%',  base: 5,   cap: 50 },
   boss_dmg:      { name: '보스 피해',        unit: '%',  base: 5,   cap: 50 },
   aspd:          { name: '공격 속도',        unit: '%',  base: 1.5, cap: 15 },
   start_gold:    { name: '시작 골드',        unit: '',   base: 20,  cap: 600, int: true },
@@ -72,7 +72,7 @@ RD.HEROINES = [
   { id: 'e03', grade: 'epic', name: '모르가나', title: '심연의 마도사', fx: [['dmg_wizard', 1], ['dmg_hidden', 0.5]], lore: '금지된 코드를 주문처럼 읽는 마도사.' },
   { id: 'e04', grade: 'epic', name: '이리스', title: '크로노 엔지니어', fx: [['boss_time', 1], ['mine_rate', 0.5]], lore: '멈춘 시계를 고치다 시간 그 자체를 고치게 되었다.' },
   { id: 'e05', grade: 'epic', name: '에코', title: '기억의 메아리', fx: [['fragment', 1], ['start_gold', 0.5]], lore: '지휘관이 잃어버린 목소리를 대신 기억하고 있는 존재.' },
-  { id: 'e06', grade: 'epic', name: '바이올렛', title: '히든 코드 연구원', fx: [['dmg_hidden', 1], ['sell_refund', 0.5]], lore: '레시피 도감의 빈칸을 처음 채운 연구원.' },
+  { id: 'e06', grade: 'epic', name: '바이올렛', title: '레거시 코드 연구원', fx: [['dmg_hidden', 1], ['sell_refund', 0.5]], lore: '레시피 도감의 빈칸을 처음 채운 연구원.' },
   // ── 유니크 ──
   { id: 'u01', grade: 'unique', name: '아테나', title: '전략 지성체', fx: [['dmg_all', 1], ['aspd', 0.6]], lore: '지혜의 여신을 본뜬 전략 AI. 네메시스와 같은 설계도에서 태어났다.' },
   { id: 'u02', grade: 'unique', name: '프레이야', title: '황금 연금술사', fx: [['kill_gold', 1], ['round_gold', 0.6]], lore: '쓰러진 적의 데이터를 금으로 바꾸는 연금술.' },

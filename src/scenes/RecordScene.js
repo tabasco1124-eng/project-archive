@@ -138,7 +138,7 @@ RD.RecordScene = class RecordScene extends Phaser.Scene {
       ['   누적 플레이 시간', hm(st.playTime)],
       ['성장', null],
       ['   최고 일반 유닛', st.topGrade ? `Lv.${st.topGrade}` : '—'],
-      ['   발견한 히든 유닛', `${SV.codex.made.length} / ${RD.RECIPES.length}`],
+      ['   발견한 레거시 유닛', `${SV.codex.made.length} / ${RD.RECIPES.length}`],
       ['   누적 기억 파편', fmt(m.totalFragments)],
       ['   해독한 메모리 캡슐', fmt(m.opened)],
       ['   복원한 히로인', `${RD.Meta.ownedCount()} / ${RD.HEROINES.length}`]);
