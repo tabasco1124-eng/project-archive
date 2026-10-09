@@ -4,12 +4,16 @@
  *  - 일시정지 / 게임 오버 / 탭 숨김 시 멈춤
  *  - 모바일 자동재생 제한: 첫 터치(다이브 버튼 등) 안에서 play() 해야 하므로
  *    play 가 거부되면 다음 터치 때 다시 시도
+ *  - 웹 주소로 열었을 때는 효과음과 같은 Web Audio 마스터(리미터)로 보내 볼륨을 GainNode 로 조절
+ *    (아이폰은 audio.volume 을 무시해서 항상 최대 음량으로 나오고, 효과음과 따로 나가면 겹칠 때 찢어짐)
+ *    파일로 직접 연 빌드(file://)는 Web Audio 로 보내면 무음이 되므로 예전처럼 audio.volume 사용
  * ===================================================================== */
 window.RD = window.RD || {};
 
 RD.BGM = (() => {
   const FADE = 0.8;                 // 페이드 시간(초)
   let el = null, cur = null, want = null, paused = false, vol = 0, fadeTimer = null, blocked = false;
+  let gain = null;                  // Web Audio 경로일 때 볼륨 노드
 
   function audio() {
     if (!el) {
@@ -17,8 +21,28 @@ RD.BGM = (() => {
       el.loop = true;
       el.preload = 'auto';
       el.volume = 0;
+      routeToMaster();
     }
     return el;
+  }
+  function routeToMaster() {
+    if (!/^https?:$/.test(location.protocol) || !RD.SFX || !RD.SFX.musicBus) return;
+    try {
+      const bus = RD.SFX.musicBus();
+      if (!bus) return;
+      const ctx = bus.context;
+      const g = ctx.createGain();
+      g.gain.value = 0;
+      ctx.createMediaElementSource(el).connect(g);
+      g.connect(bus);
+      gain = g;
+      el.volume = 1;
+    } catch (e) { gain = null; el.volume = 0; console.warn('[RD] 배경 음악을 Web Audio 로 연결하지 못해 기본 재생을 씁니다:', e); }
+  }
+  function setVol(v) {
+    v = Math.max(0, Math.min(1, v));
+    if (gain) gain.gain.setTargetAtTime(v, gain.context.currentTime, 0.015);
+    else el.volume = v;
   }
   function trackFor(round) {
     const r = Math.max(1, round);
@@ -26,6 +50,7 @@ RD.BGM = (() => {
   }
   function tryPlay() {
     const a = audio();
+    if (gain && gain.context.state !== 'running' && !document.hidden) gain.context.resume().catch(() => {});
     const p = a.play();
     if (p && p.catch) p.then(() => { blocked = false; }, () => { blocked = true; });
   }
@@ -37,7 +62,7 @@ RD.BGM = (() => {
     fadeTimer = setInterval(() => {
       i++;
       vol = from + (to - from) * (i / steps);
-      a.volume = Math.max(0, Math.min(1, vol));
+      setVol(vol);
       if (i >= steps) { clearInterval(fadeTimer); fadeTimer = null; if (done) done(); }
     }, 50);
   }
@@ -53,7 +78,7 @@ RD.BGM = (() => {
         if (!paused) { tryPlay(); fadeTo(RD.BGM_VOLUME); }
         if (want !== cur) apply();          // 페이드 도중 목표가 또 바뀐 경우
       };
-      if (cur && !a.paused && vol > 0) fadeTo(0, swap); else { vol = 0; a.volume = 0; swap(); }
+      if (cur && !a.paused && vol > 0) fadeTo(0, swap); else { vol = 0; setVol(0); swap(); }
       return;
     }
     if (!cur) return;

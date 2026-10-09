@@ -35,7 +35,7 @@ RD.SFX = (() => {
     slash: ['sword', 'heavy'], arrow: ['bow', 'bow'], bullet: ['gun', 'gun'], missile: ['cannon', 'cannon'],
     orb: ['orb', 'orb'], beam: ['beam', 'beamH'], lightning: ['bolt', 'bolt'], fire: ['fire', 'fire'], holy: ['holy', 'holy'],
   };
-  let ctx = null, bus = null, voices = 0, muted = false;
+  let ctx = null, bus = null, master = null, musicIn = null, voices = 0, muted = false;
   const bufs = {};                // 파일 이름 → AudioBuffer (불러오기 끝난 것만)
   const last = {};                // 소리 묶음별 마지막 재생 시각
   let lastAny = -1;
@@ -69,7 +69,15 @@ RD.SFX = (() => {
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -20; comp.knee.value = 8; comp.ratio.value = 6;
     comp.attack.value = 0.003; comp.release.value = 0.15;
-    bus.connect(lp); lp.connect(comp); comp.connect(ctx.destination);
+    // 마스터: 배경 음악 + 효과음을 한곳에서 합친 뒤 리미터로 피크만 눌러 줌
+    //  (둘을 따로 내보내면 폰 스피커에서 합쳐질 때 찢어지는 소리가 날 수 있음)
+    master = ctx.createDynamicsCompressor();
+    master.threshold.value = -3; master.knee.value = 2; master.ratio.value = 20;
+    master.attack.value = 0.002; master.release.value = 0.12;
+    master.connect(ctx.destination);
+    musicIn = ctx.createGain();
+    musicIn.connect(master);
+    bus.connect(lp); lp.connect(comp); comp.connect(master);
     loadAll();
   }
 
@@ -117,5 +125,7 @@ RD.SFX = (() => {
     get muted() { return muted; },
     get ready() { return !!ctx && ctx.state === 'running'; },
     get loaded() { return Object.keys(bufs).length; },
+    // 배경 음악이 붙을 입력 (bgm.js). 아직 오디오를 못 만들면 null
+    musicBus() { init(); return musicIn; },
   };
 })();
