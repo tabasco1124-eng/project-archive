@@ -106,7 +106,7 @@ RD.GameScene = class GameScene extends Phaser.Scene {
     if (L.shakeReq) { L.shakeReq = 0; this.cameras.main.shake(600, 0.012); }   // 패킷 등장·처치 흔들림
     // 배경 음악: 라운드 구간별 트랙, 일시정지/게임 오버 시 멈춤
     if (G.mode === 'over') RD.BGM.stop();
-    else { RD.BGM.setRound(G.round); RD.BGM.setPaused(G.mode === 'paused'); }
+    else { RD.BGM.setRound(G.round, G.boss && G.boss.special && G.boss.special.bgm); RD.BGM.setPaused(G.mode === 'paused'); }
 
     // 포인터가 다른 씬 위에서 떼어져 up 이벤트를 놓친 경우 대비
     if (this.drag) {

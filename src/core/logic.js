@@ -129,9 +129,16 @@ RD.GameLogic = (() => {
     spawnBoss(r) {
       const G = this.G, CONFIG = RD.CONFIG;
       const bt = RD.BOSSES[(r / CONFIG.bossEvery - 1) % RD.BOSSES.length];
-      G.boss = this.makeEnemy(bt, Math.ceil(RD.BAL.bossHp(r) * (1 + (this.hpMult() - 1) * RD.BAL.bossDiffShare)), CONFIG.enemyBaseSpeed * 0.55, bt.size, true);
-      G.bossTimer = G.bossTime;
-      this.toast(`보스 등장! ${bt.name}  (${G.bossTime}초 안에 처치)`, '#ff6b6b');
+      const SP = (RD.SPECIAL_BOSSES || {})[r];
+      const hp = RD.BAL.bossHp(r) * (1 + (this.hpMult() - 1) * RD.BAL.bossDiffShare) * (SP ? SP.hpMul : 1);
+      G.boss = this.makeEnemy(bt, Math.ceil(hp), CONFIG.enemyBaseSpeed * 0.55, bt.size, true);
+      G.bossTimer = G.bossTime + (SP ? SP.extraTime : 0);
+      if (SP) {
+        G.boss.special = SP;
+        this.shakeReq = 1;               // GameScene 이 화면 흔들림으로 표시
+        for (const line of SP.lines) this.toast(line, '#ff1744');
+        this.toast(`특급 보스 ${bt.name}  (${Math.round(G.bossTimer)}초 안에 처치 · 보상 ${RD.GRADES[SP.rewardGrade].name} 유닛)`, '#ff6b6b');
+      } else this.toast(`보스 등장! ${bt.name}  (${G.bossTime}초 안에 처치)`, '#ff6b6b');
     }
 
     // ── 이벤트 몬스터: 패킷 ──
@@ -439,6 +446,14 @@ RD.GameLogic = (() => {
         this.toast(`보스 처치!  +${g} 골드`, '#ffd54f');
         G.boss = null;
         G.bossKills++;
+        if (e.special) {                 // 특별 보스 보상: 해당 레벨 랜덤 유닛 1개 (타입도 랜덤)
+          const t = pick(RD.UNITS_BY_GRADE[e.special.rewardGrade]);
+          G.packetRewards.push(t);
+          this.shakeReq = 1;
+          this.toast(`수문장 격파!  [${RD.unitLevelName(t)}] ${t.name} 획득`, '#ffd54f');
+          this.placePacketRewards();
+          if (G.packetRewards.length) this.toast('빈 칸이 생기면 보상 유닛이 배치됩니다', '#ff8a80');
+        }
       } else {
         this.addFloat(e.x, e.y - 8, '+' + g, '#ffd54f', 22);
       }

@@ -2,6 +2,7 @@
  * 배경 음악 (HTML5 Audio 1개를 재사용).  Phaser 오디오는 꺼져 있음(main.js noAudio).
  *  - 라운드 구간(RD.BGM_TRACKS)에 맞는 트랙을 반복 재생, 구간이 바뀌면 페이드 전환
  *  - 타이틀 · 로비는 RD.BGM_MENU 의 곡들을 번갈아 재생 (menu())
+ *  - 특별 보스(RD.SPECIAL_BOSSES)가 살아 있는 동안은 그 보스 곡 (setRound 의 override)
  *  - 일시정지 / 게임 오버 / 탭 숨김 시 멈춤
  *  - 모바일 자동재생 제한: 첫 터치(다이브 버튼 등) 안에서 play() 해야 하므로
  *    play 가 거부되면 다음 터치 때 다시 시도
@@ -57,6 +58,8 @@ RD.BGM = (() => {
     const r = Math.max(1, round);
     return RD.BGM_TRACKS.find(t => r >= t.from && r <= t.to) || null;
   }
+  const overrides = {};
+  function overrideTrack(url) { return overrides[url] || (overrides[url] = { url }); }
   function tryPlay() {
     const a = audio();
     if (gain && gain.context.state !== 'running' && !document.hidden) gain.context.resume().catch(() => {});
@@ -113,8 +116,9 @@ RD.BGM = (() => {
 
   return {
     // 라운드에 맞는 트랙으로 (같은 트랙이면 그대로 이어서 재생)
-    setRound(round) {
-      const t = trackFor(round);
+    // override: 특별 보스처럼 잠깐 다른 곡을 틀 때 그 곡 주소 (없어지면 라운드 곡으로 돌아감)
+    setRound(round, override) {
+      const t = override ? overrideTrack(override) : trackFor(round);
       if (t !== want) { want = t; apply(); }
     },
     setPaused(p) { if (p !== paused) { paused = p; apply(); } },
