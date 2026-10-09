@@ -48,7 +48,7 @@ RD.GameLogic = (() => {
         selected: null,
         boss: null, bossTimer: 0,
         packet: null, packetTimer: 0,   // 이벤트 몬스터 패킷 (RD.PACKET)
-        packetKills: 0,                 // 이번 판 패킷 처치 수 → 보상 레벨
+        packetKills: 0,                 // 이번 판 패킷 처치 수 (기록)
         packetRewards: [],              // 칸이 없어 아직 못 놓은 보상 유닛
         legacyEvents: {},               // 레벨별 레거시 첫 획득 연출을 이미 했는지 (RD.LEGACY_EVENTS)
         overReason: '',
@@ -155,13 +155,13 @@ RD.GameLogic = (() => {
     }
     packetReward() {
       const G = this.G, P = RD.PACKET;
-      const grade = P.rewardGrades[Math.min(G.packetKills, P.rewardGrades.length - 1)];
       G.packetKills++;
-      const t = pick(RD.HIDDEN_UNITS.filter(u => u.grade === grade));
+      const ts = [];
+      for (let i = 0; i < P.reward.count; i++) ts.push(pick(RD.UNITS_BY_GRADE[P.reward.grade]));   // 타입도 매번 랜덤
       const g = Math.round(RD.BAL.bossGold(G.round) * P.goldMul * this.goldMul.kill);
       G.gold += g;
-      G.packetRewards.push(t);
-      this.toast(`패킷 확보!  [${RD.unitLevelName(t)}] ${t.name} 획득  ·  +${fmt(g)} 골드`, RD.HIDDEN_COLOR);
+      G.packetRewards.push(...ts);
+      this.toast(`패킷 확보!  ${ts.map(t => `[${RD.unitLevelName(t)}] ${t.name}`).join(' · ')} 획득  ·  +${fmt(g)} 골드`, RD.HIDDEN_COLOR);
       this.placePacketRewards();
       if (G.packetRewards.length) this.toast('빈 칸이 생기면 보상 유닛이 배치됩니다', '#ff8a80');
     }

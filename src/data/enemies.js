@@ -43,13 +43,15 @@ RD.ENEMIES = [
 ];
 
 /* ── 이벤트 몬스터: 패킷 ──
- *  every 라운드마다(50, 100, 150 …) 그 라운드 웨이브와 함께 등장. 제한 시간 안에 처치하면 히든 유닛 지급
+ *  every 라운드마다(30, 60, 90 …) 그 라운드 웨이브와 함께 등장. 제한 시간 안에 처치하면 보상 유닛 지급
  *  - 적 수(패배 기준)에 안 들어가고, 못 잡아도 사라질 뿐 게임은 계속됨 ("패킷 전송 실패")
  *  - 타입 없음(모든 유닛 ×1.0), 감속·기절은 보스처럼 절반
- *  - 보상: 처치 순서대로 히든 Lv.5 → Lv.6 → Lv.7 (이후 계속 Lv.7), 그 레벨의 히든 유닛 중 무작위 + 골드
+ *  - 보상: reward.grade 레벨 일반 유닛 reward.count 마리 (타입 무작위) + 골드
  *  - 체력 = 그 라운드 적 체력 × hpMul × 난이도 배율 (tools/balance_sim.js 로 처치율 검증) */
 RD.PACKET = {
-  every: 50, timeLimit: 300, hpMul: 40, speedMul: 1.7, rewardGrades: [5, 6, 7],
+  every: 30,          // N 스테이지마다 등장 (30, 60, 90...) — 주기는 여기서만 바꾸면 됨
+  timeLimit: 300, hpMul: 40, speedMul: 1.7,
+  reward: { grade: 4, count: 2 },   // 처치 보상: 랜덤 타입 유닛 (레벨, 마리 수). 칸이 없으면 대기 후 배치
   goldMul: 3,   // 처치 골드 = 보스 골드 × goldMul
   type: { id: 'packet', name: '패킷', shape: 'hex', color: '#ff2bd6', size: 46 },
 };
@@ -58,8 +60,8 @@ RD.PACKET = {
 //  hpMul 체력 배율, extraTime 제한 시간 추가(초), bgm(선택) 등장~처치까지 나오는 곡,
 //  rewardGrade 처치 보상 랜덤 유닛 레벨 (칸이 없으면 패킷 보상처럼 대기), lines 등장 멘트
 RD.SPECIAL_BOSSES = {
-  60: {
-    hpMul: 1.2, extraTime: 10, rewardGrade: 4,
+  50: {
+    hpMul: 1.2, extraTime: 10, rewardGrade: 4, bgm: 'assets/audio/boss50_final_boss.mp3',   // '최종 보스의 등장'
     lines: ['경고: 네메시스 방화벽 심층부 개방', '네메시스가 수문장을 직접 깨웠습니다. 전력을 다해 막으세요!'],
   },
 };
